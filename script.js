@@ -249,7 +249,7 @@ function checkRestaurantOpen() {
   const minAtual = data.getHours() * 60 + data.getMinutes();
   const diasAbertos = [3,5,6];
   if(!diasAbertos.includes(dia)) return false;
-  return minAtual >= 12*60 && minAtual <= 23*60+30;
+  return minAtual >= 19*60 && minAtual <= 23*60+30;
 }
 
 function updateHeaderStatus() {
