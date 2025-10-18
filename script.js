@@ -336,7 +336,7 @@ checkoutBtn.addEventListener("click", async () => {
 };
 
   try {
-    const res = await fetch("https://mickey-lanches-backend-1.onrender.com/api/pedido", {
+    const res = await fetch("http://localhost:3000/api/pedido", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(pedido)
