@@ -1,4 +1,8 @@
-// script.js — Frontend atualizado (gera chave PIX fixa + referência, timer 10min, envia pedido)
+// =====================
+// CONFIGURAÇÃO
+// =====================
+const BACKEND_URL = "https://aggravatedly-chiliadal-yamileth.ngrok-free.dev";
+// const BACKEND_URL = "http://localhost:3000"; // use para testes locais
 
 // =====================
 // Variáveis principais
@@ -26,7 +30,7 @@ const changeContainer = document.getElementById("change-container");
 const paymentMethods = document.getElementsByName("payment");
 const pixKeyText = document.getElementById("pix-key");
 const copyPixBtn = document.getElementById("copy-pix-btn");
-const pixQrContainer = document.getElementById("pix-qrcode-container"); // aqui vamos usar para exibir referência
+const pixQrContainer = document.getElementById("pix-qrcode-container");
 const pixTimerEl = document.getElementById("pix-timer");
 const confirmPixBtn = document.getElementById("confirm-pix-btn");
 const changeForInput = document.getElementById("change-for");
@@ -39,19 +43,19 @@ const neighborhoodInput = document.getElementById("neighborhood");
 const numberInput = document.getElementById("number");
 const observationsInput = document.getElementById("observations");
 
-// Header status (já no HTML crie um elemento com id="header-status")
+// Header status
 const headerStatus = document.getElementById("header-status");
 
 let cart = [];
-let currentGeneratedPixRef = ""; // referência gerada para o pagamento
+let currentGeneratedPixRef = "";
 let pixTimerInterval = null;
 let pixConfirmed = false;
 
-// Contadores locais (salvos enquanto a página estiver aberta)
+// Contadores locais
 let nextDeliveryNumber = 1;
 let nextBalcaoNumber = 1;
 
-// CHAVE PIX RECEBEDORA FIXA (conforme pedido)
+// Chave PIX fixa
 const RECEIVER_PIX_KEY = "hauankawai@gmail.com";
 
 // =====================
@@ -61,8 +65,6 @@ function currencyBRL(value) {
   return value.toLocaleString("pt-br", { style: "currency", currency: "BRL" });
 }
 function generatePaymentRef(amount) {
-  // referência aleatória incluindo valor para facilitar conferência
-  // ex: MCKY-20251018-5f3a9c-17-00  (não inclua espaços; usaremos underscore)
   const rand = Math.random().toString(16).slice(2, 8).toUpperCase();
   const timestamp = Date.now().toString(36).toUpperCase();
   const cents = Math.round(amount * 100);
@@ -139,9 +141,8 @@ function updateCartModal() {
   cartTotal.textContent = total.toLocaleString("pt-br", { style: "currency", currency: "BRL" });
   cartCounter.textContent = cart.reduce((a, b) => a + b.quantity, 0);
 
-  // reset PIX confirm ao alterar carrinho
   pixConfirmed = false;
-  invalidatePixRef(); // limpa/refaz se necessário
+  invalidatePixRef();
 }
 
 cartItemsContainer.addEventListener("click", (e) => {
@@ -165,10 +166,9 @@ function removeItemCart(name) {
 }
 
 // =====================
-// PIX UI / geração de referência + timer 10min
+// PIX UI / referência
 // =====================
 function invalidatePixRef() {
-  // limpa UI e invalida ref
   currentGeneratedPixRef = "";
   pixKeyText.textContent = "--";
   pixQrContainer.innerHTML = "";
@@ -192,10 +192,7 @@ function handlePaymentUIChange() {
 }
 paymentMethods.forEach(pm => pm.addEventListener("change", handlePaymentUIChange));
 
-
-
 function generatePixRefForUI() {
-  // só mostra se carrinho não vazio
   const total = cart.reduce((acc, i) => acc + i.price * i.quantity, 0);
   if (total <= 0) {
     pixQrContainer.innerHTML = `<p class="text-red-600">Adicione itens ao carrinho para gerar pagamento.</p>`;
@@ -203,11 +200,8 @@ function generatePixRefForUI() {
     return;
   }
 
-  // Exibe chave Pix fixa
   pixKeyText.textContent = RECEIVER_PIX_KEY;
-
-  // Cria botão WhatsApp para envio de comprovante
-  const whatsappNumber = "5544999038033"; // número no formato internacional (Brasil)
+  const whatsappNumber = "5544999038033";
   const whatsappMsg = encodeURIComponent(`Olá, estou enviando o comprovante do pagamento de R$ ${total.toFixed(2)}`);
 
   pixQrContainer.innerHTML = `
@@ -224,22 +218,18 @@ function generatePixRefForUI() {
       </a>
     </div>
   `;
-
-  // Oculta timer e botão de confirmar Pix antigo
   confirmPixBtn.classList.add("hidden");
   pixTimerEl.classList.add("hidden");
 }
 
-
-
-
+// =====================
+// Confirmar PIX
+// =====================
 confirmPixBtn.addEventListener("click", () => {
-  // só confirma se há referência válida e não expirada
   if (!currentGeneratedPixRef) {
     Toastify({ text: "Referência inválida/expirada.", duration: 2500, style: { background: "#ef4444" } }).showToast();
     return;
   }
-  // checar expiracao
   const expiresAt = parseInt(pixTimerEl.dataset.expiresAt || "0", 10);
   if (Date.now() > expiresAt) {
     Toastify({ text: "Referência expirada.", duration: 2500, style: { background: "#ef4444" } }).showToast();
@@ -251,21 +241,21 @@ confirmPixBtn.addEventListener("click", () => {
 });
 
 // =====================
-// Horário de funcionamento (header)
+// Header status
 // =====================
 function checkRestaurantOpen() {
   const data = new Date();
-  const dia = data.getDay(); // 0 dom ... 6 sab
+  const dia = data.getDay();
   const minAtual = data.getHours() * 60 + data.getMinutes();
-  const diasAbertos = [3, 5, 6]; // quarta, sexta, sábado
-  if (!diasAbertos.includes(dia)) return false;
-  return minAtual >= 12 * 60 && minAtual <= 23 * 60 + 30; // 19:00 - 23:30
+  const diasAbertos = [3,5,6];
+  if(!diasAbertos.includes(dia)) return false;
+  return minAtual >= 12*60 && minAtual <= 23*60+30;
 }
 
 function updateHeaderStatus() {
-  if (!headerStatus) return;
+  if(!headerStatus) return;
   const open = checkRestaurantOpen();
-  if (open) {
+  if(open){
     headerStatus.textContent = "Aberto agora - Quarta, Sexta e Sábado: 19:00 às 23:30";
     headerStatus.classList.remove("bg-red-500"); headerStatus.classList.add("bg-green-500");
   } else {
@@ -274,103 +264,83 @@ function updateHeaderStatus() {
   }
 }
 updateHeaderStatus();
-setInterval(updateHeaderStatus, 60000);
+setInterval(updateHeaderStatus,60000);
 
 // =====================
 // Entrega UI
 // =====================
 deliveryTypeRadios.forEach(r => r.addEventListener("change", () => {
-  if (getSelectedDeliveryType() === "entrega") addressSection.classList.remove("hidden");
+  if(getSelectedDeliveryType() === "entrega") addressSection.classList.remove("hidden");
   else addressSection.classList.add("hidden");
 }));
 
 // =====================
-// Finalizar pedido -> envia ao backend com referência e números
-// =====================
-// =====================
-// Finalizar pedido -> envia ao backend com popup
+// Checkout / enviar pedido
 // =====================
 checkoutBtn.addEventListener("click", async () => {
-  // Validações básicas
-  if (!checkRestaurantOpen()) { 
-    Toastify({ text: "Lanchonete fechada!", duration: 2500, style: { background: "#ef4444" } }).showToast(); 
-    return; 
+  if(!checkRestaurantOpen()){
+    Toastify({ text:"Lanchonete fechada!", duration:2500, style:{background:"#ef4444"}}).showToast(); return;
   }
-  if (!cart.length) { 
-    Toastify({ text: "Carrinho vazio.", duration: 2500 }).showToast(); 
-    return; 
-  }
-  if (!customerNameInput.value.trim()) { nameWarn.classList.remove("hidden"); return; }
-  if (!/^\d{8,15}$/.test(customerPhoneInput.value.trim())) { phoneWarn.classList.remove("hidden"); return; }
+  if(!cart.length){ Toastify({text:"Carrinho vazio.", duration:2500}).showToast(); return; }
+  if(!customerNameInput.value.trim()){ nameWarn.classList.remove("hidden"); return; }
+  if(!/^\d{8,15}$/.test(customerPhoneInput.value.trim())){ phoneWarn.classList.remove("hidden"); return; }
 
   const deliveryType = getSelectedDeliveryType();
-  if (deliveryType === "entrega" && (!streetInput.value.trim() || !neighborhoodInput.value.trim() || !numberInput.value.trim())) { 
-    addressWarn.classList.remove("hidden"); 
-    return; 
+  if(deliveryType==="entrega" && (!streetInput.value.trim() || !neighborhoodInput.value.trim() || !numberInput.value.trim())){
+    addressWarn.classList.remove("hidden"); return;
   }
   addressWarn.classList.add("hidden");
 
   const paymentMethod = getSelectedPaymentMethod();
-  if (!paymentMethod) { paymentWarn.classList.remove("hidden"); return; }
-  if (paymentMethod === "Pix" && !pixConfirmed) {
-    Toastify({ text: "Pague e confirme o Pix antes de finalizar.", duration: 3000, style: { background: "#f59e0b" } }).showToast();
+  if(!paymentMethod){ paymentWarn.classList.remove("hidden"); return; }
+  if(paymentMethod==="Pix" && !pixConfirmed){
+    Toastify({text:"Pague e confirme o Pix antes de finalizar.", duration:3000, style:{background:"#f59e0b"}}).showToast();
     return;
   }
 
-  const total = cart.reduce((acc, i) => acc + i.price * i.quantity, 0);
+  const total = cart.reduce((acc,i)=>acc+i.price*i.quantity,0);
 
-  // Monta payload do pedido
- const pedido = {
-  cliente: customerNameInput.value.trim(),
-  telefone: customerPhoneInput.value.trim(),
-  tipo_entrega: deliveryType,
-  endereco: deliveryType === "entrega" ? `${streetInput.value.trim()}, ${numberInput.value.trim()}, ${neighborhoodInput.value.trim()}` : "",
-  itens: cart,
-  total,
-  observacoes: observationsInput.value.trim(),
-  pagamento: paymentMethod,       // <-- ADICIONADO
-  // PIX
-  pix_chave: paymentMethod === "Pix" ? RECEIVER_PIX_KEY : null,
-  pix_valor: paymentMethod === "Pix" ? total : null,
-  pix_referencia: paymentMethod === "Pix" ? currentGeneratedPixRef : null
-};
+  const pedido = {
+    cliente: customerNameInput.value.trim(),
+    telefone: customerPhoneInput.value.trim(),
+    tipo_entrega: deliveryType,
+    endereco: deliveryType==="entrega" ? `${streetInput.value.trim()}, ${numberInput.value.trim()}, ${neighborhoodInput.value.trim()}` : "",
+    itens: cart,
+    total,
+    observacoes: observationsInput.value.trim(),
+    pagamento: paymentMethod,
+    pix_chave: paymentMethod==="Pix"?RECEIVER_PIX_KEY:null,
+    pix_valor: paymentMethod==="Pix"?total:null,
+    pix_referencia: paymentMethod==="Pix"?currentGeneratedPixRef:null
+  };
 
-  try {
-    const res = await fetch("http://localhost:3000/api/pedido", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(pedido)
+  try{
+    const res = await fetch(`${BACKEND_URL}/api/pedido`, {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(pedido)
     });
     const data = await res.json();
-    if (!data.sucesso) throw new Error(data.mensagem || "Erro desconhecido");
+    if(!data.sucesso) throw new Error(data.mensagem||"Erro desconhecido");
 
-    // Mostra popup de confirmação
     Swal.fire({
-      title: "Pedido recebido!",
-      html: "Seu pedido está sendo processado e chegará em até <strong>30 minutos</strong>.",
-      icon: "success",
-      confirmButtonText: "Ok"
+      title:"Pedido recebido!",
+      html:"Seu pedido está sendo processado e chegará em até <strong>30 minutos</strong>.",
+      icon:"success",
+      confirmButtonText:"Ok"
     });
 
-    // Limpar carrinho e campos
     cart = [];
     updateCartModal();
     streetInput.value = neighborhoodInput.value = numberInput.value = observationsInput.value = "";
     customerNameInput.value = customerPhoneInput.value = changeForInput.value = "";
     pixConfirmed = false; currentGeneratedPixRef = "";
-    clearInterval(pixTimerInterval);
-    paymentMethods.forEach(pm => pm.checked = pm.value === "Cartão");
+    paymentMethods.forEach(pm => pm.checked = pm.value==="Cartão");
     handlePaymentUIChange();
 
-    // Atualiza painel de gerenciamento (opcional)
-    if(typeof refreshPedidosPainel === "function") refreshPedidosPainel();
-
-  } catch(err) {
+    if(typeof refreshPedidosPainel==="function") refreshPedidosPainel();
+  } catch(err){
     console.error("Erro ao enviar pedido:", err);
-    Swal.fire({
-      title: "Erro",
-      text: "Não foi possível enviar o pedido: " + err.message,
-      icon: "error"
-    });
+    Swal.fire({title:"Erro", text:"Não foi possível enviar o pedido: "+err.message, icon:"error"});
   }
 });
