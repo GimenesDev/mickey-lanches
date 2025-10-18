@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css"/>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+    <link href="https://fonts.googleapis.com/css2?family=Passion+One:wght@400;700;900&family=Poppins:wght@400;500;600;700&family=Roboto:ital,wght@0,100..900;1,100..900&family=Sriracha&display=swap" rel="stylesheet"/>
+
+    <link rel="stylesheet" href="style/output.css">
+
+    <link rel="shortcut icon" href="assets/favicon.jpg" type="image/x-icon">
+
+    <!-- meta tag og  -->
+    <meta property="og:type" content="website"/>
+    <meta property="og:title" content="Mickey Lanches - O melhor hamburguer da região!"/>
+    <meta property="og:image" content="https://micheylanchesburguer.vercel.app/assets/hamb-1.png"/>
+    <meta property="og:description" content="Venha conhecer o melhor hamburguer da região, feito com ingredientes selecionados e muito amor."/>
+    <meta property="og:site_name" content="Mickey Lanches"/>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-Fo3rlrZj/k7ujTnHg4CGR2D7kSs0v4LLanw2qksYuRlEzO+tcaEPQogQ0KaoGN26/zrn20ImR1DfuLWnOo7aBA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <title>Mickey Lanches - O melhor hamburguer da região!</title>
+</head>
+<body>
+
+    <!--header-->
+    <header class="w-full h-[420px] bg-zinc-900 bg-home bg-cover bg-center">
+        <div class="w-full h-full flex flex-col justify-center items-center">
+            <img src="assets/hamb-1.png" alt="logo dev burguer" class="w-32 h-32 rounded-full shadow-lg hover:scale-110 duration-200">
+            <h1 class="text-3xl text-white mt-4 mb-2 font-bold">Mickey Lanches</h1>
+            <span class="text-white font-medium">Rua Projetada 323, Ubiratã - PR </span>
+                <div id="header-status" class="text-white px-4 py-1 mt-5 rounded-lg "></div>
+
+            </div>
+        </div>
+    </header>
+    <!--fim do header-->
+
+    <h2 class="text-2xl md:text-3xl font-bold text-center mt-5 mb-6">Conheça nosso cardapio</h2>
+
+    <!-- inicio menu -->
+    <div id="menu">
+        <main class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7 md:gap-10 mx-auto max-w-7xl px-2 mb-16">
+            <!-- produto item -->
+            <div class="flex gap-2">
+                <img src="assets/hamb-1.png" alt="x-burger" class="w-28 h-28 rounded-md hover:scale-110 hover:-rotate-2 duration-300">
+                <div>
+                    <p class="font-bold">X-Burger</p>
+                    <p class="text-sm">Pão de hamburguer, hamburguer, presunto, muçarela e tomate.</p>
+                    <div class="flex items-center gap-2 justify-between mt-3">
+                        <p class="font-bold text-lg">R$ 17,00</p>
+                        <button class="bg-gray-900 px-5 rounded add-to-cart-btn" data-name="X-Burger" data-price="17.00">
+                            <i class="fa fa-cart-plus text-white"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- fim produto item -->
+
+            <!-- produto item -->
+            <div class="flex gap-2">
+                <img src="assets/hamb-2.png" alt="X-Salada" class="w-28 h-28 rounded-md hover:scale-110 hover:-rotate-2 duration-300">
+                <div>
+                    <p class="font-bold">X-Salada</p>
+                    <p class="text-sm">Pão de hamburguer, hamburguer, presunto, muçarela, alface, tomate, milho e ervilha.</p>
+                    <div class="flex items-center gap-2 justify-between mt-3">
+                        <p class="font-bold text-lg">R$ 19,00</p>
+                        <button class="bg-gray-900 px-5 rounded add-to-cart-btn" data-name="X-Salada" data-price="19.00">
+                            <i class="fa fa-cart-plus text-white"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- fim produto item -->
+
+            <!-- produto item -->
+            <div class="flex gap-2">
+                <img src="assets/hamb-3.png" alt="X-Egg" class="w-28 h-28 rounded-md hover:scale-110 hover:-rotate-2 duration-300">
+                <div>
+                    <p class="font-bold">X-Egg</p>
+                    <p class="text-sm">Pão de hamburguer, hamburguer, ovo, presunto, muçarela, alface, tomate, milho e ervilha.</p>
+                    <div class="flex items-center gap-2 justify-between mt-3">
+                        <p class="font-bold text-lg">R$ 24,00</p>
+                        <button class="bg-gray-900 px-5 rounded add-to-cart-btn" data-name="X-Egg" data-price="24.00">
+                            <i class="fa fa-cart-plus text-white"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- fim produto item -->
+
+            <!-- produto item -->
+            <div class="flex gap-2">
+                <img src="assets/hamb-4.png" alt="X-Bacon" class="w-28 h-28 rounded-md hover:scale-110 hover:-rotate-2 duration-300">
+                <div>
+                    <p class="font-bold">X-Bacon</p>
+                    <p class="text-sm">Pão de hamburguer, hamburguer, bacon, presunto, muçarela, alface, tomate, milho e ervilha.</p>
+                    <div class="flex items-center gap-2 justify-between mt-3">
+                        <p class="font-bold text-lg">R$ 25,00</p>
+                        <button class="bg-gray-900 px-5 rounded add-to-cart-btn" data-name="X-Bacon" data-price="25.00">
+                            <i class="fa fa-cart-plus text-white"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- fim produto item -->
+
+             <!-- produto item -->
+            <div class="flex gap-2">
+                <img src="assets/hamb-4.png" alt="X-Americano" class="w-28 h-28 rounded-md hover:scale-110 hover:-rotate-2 duration-300">
+                <div>
+                    <p class="font-bold">X-Americano</p>
+                    <p class="text-sm">Pão de hamburguer, hamburguer, bacon, ovo, presunto, muçarela, alface, tomate, milho e ervilha.</p>
+                    <div class="flex items-center gap-2 justify-between mt-3">
+                        <p class="font-bold text-lg">R$ 27,00</p>
+                        <button class="bg-gray-900 px-5 rounded add-to-cart-btn" data-name="X-Americano" data-price="27.00">
+                            <i class="fa fa-cart-plus text-white"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- fim produto item -->
+
+
+             <!-- produto item -->
+            <div class="flex gap-2">
+                <img src="assets/hamb-4.png" alt="X-Tudo" class="w-28 h-28 rounded-md hover:scale-110 hover:-rotate-2 duration-300">
+                <div>
+                    <p class="font-bold">X-Tudo</p>
+                    <p class="text-sm">Pão de hamburguer, hamburguer, bacon, ovo, salsicha, presunto, muçarela, alface, tomate, milho e ervilha.</p>
+                    <div class="flex items-center gap-2 justify-between mt-3">
+                        <p class="font-bold text-lg">R$ 29,00</p>
+                        <button class="bg-gray-900 px-5 rounded add-to-cart-btn" data-name="X-Tudo" data-price="29.00">
+                            <i class="fa fa-cart-plus text-white"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- fim produto item -->
+
+
+             <!-- produto item -->
+            <div class="flex gap-2">
+                <img src="assets/hamb-4.png" alt="X-Frango" class="w-28 h-28 rounded-md hover:scale-110 hover:-rotate-2 duration-300">
+                <div>
+                    <p class="font-bold">X-Frango</p>
+                    <p class="text-sm">Pão de hamburguer, filé de frango, presunto, muçarela, alface, tomate, milho e ervilha.</p>
+                    <div class="flex items-center gap-2 justify-between mt-3">
+                        <p class="font-bold text-lg">R$ 26,00</p>
+                        <button class="bg-gray-900 px-5 rounded add-to-cart-btn" data-name="X-Frango" data-price="26.00">
+                            <i class="fa fa-cart-plus text-white"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- fim produto item -->
+
+             <!-- produto item -->
+            <div class="flex gap-2">
+                <img src="assets/hamb-4.png" alt="X-Frango/Bacon" class="w-28 h-28 rounded-md hover:scale-110 hover:-rotate-2 duration-300">
+                <div>
+                    <p class="font-bold">X-Frango/Bacon</p>
+                    <p class="text-sm">Pão de hamburguer, filé de frango, bacon, presunto, muçarela, alface, tomate, milho e ervilha.</p>
+                    <div class="flex items-center gap-2 justify-between mt-3">
+                        <p class="font-bold text-lg">R$ 29,00</p>
+                        <button class="bg-gray-900 px-5 rounded add-to-cart-btn" data-name="X-Frango/Bacon" data-price="29.00">
+                            <i class="fa fa-cart-plus text-white"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- fim produto item -->
+
+             <!-- produto item -->
+            <div class="flex gap-2">
+                <img src="assets/hamb-4.png" alt="X-Calabresa" class="w-28 h-28 rounded-md hover:scale-110 hover:-rotate-2 duration-300">
+                <div>
+                    <p class="font-bold">X-Calabresa</p>
+                    <p class="text-sm">Pão de hamburguer, hamburguer, calabresa, presunto, muçarela, alface, tomate, milho e ervilha.</p>
+                    <div class="flex items-center gap-2 justify-between mt-3">
+                        <p class="font-bold text-lg">R$ 27,00</p>
+                        <button class="bg-gray-900 px-5 rounded add-to-cart-btn" data-name="X-Calabresa" data-price="27.00">
+                            <i class="fa fa-cart-plus text-white"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- fim produto item -->
+
+              <!-- produto item -->
+            <div class="flex gap-2">
+                <img src="assets/hamb-4.png" alt="X-Calabresa/Bacon" class="w-28 h-28 rounded-md hover:scale-110 hover:-rotate-2 duration-300">
+                <div>
+                    <p class="font-bold">X-Calabresa/Bacon</p>
+                    <p class="text-sm">Pão de hamburguer, hamburguer, calabresa, bacon, presunto, muçarela, alface, tomate, milho e ervilha.</p>
+                    <div class="flex items-center gap-2 justify-between mt-3">
+                        <p class="font-bold text-lg">R$ 29,00</p>
+                        <button class="bg-gray-900 px-5 rounded add-to-cart-btn" data-name="X-Calabresa/Bacon" data-price="29.00">
+                            <i class="fa fa-cart-plus text-white"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- fim produto item -->
+        </main>
+
+
+
+        <!-- bebidas  -->
+        <div class="mx-auto max-w-7xl px-2 my-2">
+            <h2 class="font-bold text-3xl">Bebidas</h2>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7 md:gap-10 mx-auto max-w-7xl px-2 mb-16">
+            <div class="flex gap-2 w-full">
+                <img src="assets/refri-1.png" alt="Refri Lata 350ml" class="w-28 h-28 rounded-md hover:scale-110 hover:-rotate-2 duration-300">
+                <div class="w-full">
+                    <p class="font-bold">Refri Lata 350ml</p>
+                    <p class="text-sm">Coca-Cola, Coca-Cola Zero, Guaraná Antarctica, Sprite.</p>
+                    <div class="flex items-center gap-2 justify-between mt-3">
+                        <p class="font-bold text-lg">R$ 6,00</p>
+                        <button class="bg-gray-900 px-5 rounded add-to-cart-btn" data-name="Refri Lata 350ml" data-price="6.00">
+                            <i class="fa fa-cart-plus text-white"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-2 w-full">
+                <img src="assets/coca2L.png" alt="Coca-Cola 2L" class="w-28 h-28 rounded-md hover:scale-110 hover:-rotate-2 duration-300">
+                <div class="w-full">
+                    <p class="font-bold">Coca-Cola 2L</p>
+                     <p class="text-sm">Coca-Cola.</p>
+                    <div class="flex items-center gap-2 justify-between mt-3">
+                        <p class="font-bold text-lg">R$ 17,00</p>
+                        <button class="bg-gray-900 px-5 rounded add-to-cart-btn" data-name="Coca-Cola 2L" data-price="17.00">
+                            <i class="fa fa-cart-plus text-white"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-2 w-full">
+                <img src="assets/tubario-2l.png" alt="Rio Branco 2L" class="w-28 h-28 rounded-md hover:scale-110 hover:-rotate-2 duration-300">
+                <div class="w-full">
+                    <p class="font-bold">Rio Branco 2L</p>
+                     <p class="text-sm">Tutti-Frutti, Abacaxi.</p>
+                    <div class="flex items-center gap-2 justify-between mt-3">
+                        <p class="font-bold text-lg">R$ 10,00</p>
+                        <button class="bg-gray-900 px-5 rounded add-to-cart-btn" data-name="Coca lata" data-price="10.00">
+                            <i class="fa fa-cart-plus text-white"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- fim do menu -->
+
+    <div class="bg-black/50 w-full h-full fixed top-0 left-0 z-[99] items-center justify-center hidden" id="cart-modal">
+        <div class="bg-white p-5 rounded-md min-w-[90%] md:min-w-[600px] max-h-[90vh] overflow-y-auto">
+            <h2 class="text-center font-bold text-2xl mb-2">Meu Carrinho</h2>
+            <div id="cart-items" class="flex justify-between mb-2 flex-col"></div>
+            <p class="font-bold">Total: <span id="cart-total">0.00</span></p>
+            <p class="font-bold mt-4">Nome do Cliente:</p>
+            <input type="text" id="customer-name" placeholder="Ex: João da Silva" class="w-full border-2 p-1 rounded my-1" />
+            <p id="name-warn" class="text-red-500 hidden">Digite o nome do cliente!</p>
+            <p class="font-bold mt-2">Telefone (WhatsApp):</p>
+            <input type="tel" id="customer-phone" placeholder="Ex: 54999990000 (somente números)" class="w-full border-2 p-1 rounded my-1" />
+            <p id="phone-warn" class="text-red-500 hidden">Digite um telefone válido!</p>
+            <p class="font-bold mt-4">Tipo de Entrega:</p>
+            <div class="flex gap-2 mt-2">
+                <label><input type="radio" name="delivery-type" value="retirada" checked> Retirada no balcão</label>
+                <label><input type="radio" name="delivery-type" value="entrega"> Entrega</label>
+            </div>
+            <div id="address-section" class="mt-4 hidden">
+                <p class="font-bold">Endereço de Entrega:</p>
+                <input type="text" placeholder="Rua" id="street" class="w-full border-2 p-1 rounded my-1" />
+                <div class="flex gap-2 mt-2">
+                    <input type="text" placeholder="Bairro" id="neighborhood" class="flex-1 border-2 p-1 rounded" />
+                    <input type="text" placeholder="Número" id="number" class="flex-1 border-2 p-1 rounded" />
+                </div>
+                <p class="text-red-500 hidden" id="address-warn">Preencha o endereço completo!</p>
+            </div>
+            <p class="font-bold mt-4">Observações (ex: Sem cebola, ou Retirar ketchup):</p>
+            <textarea id="observations" placeholder="Digite aqui suas observações..." class="w-full border-2 p-1 rounded my-1" rows="3"></textarea>
+            <p class="font-bold mt-4">Forma de Pagamento:</p>
+            <div id="payment-methods" class="flex flex-col gap-2 mt-2">
+                <label><input type="radio" name="payment" value="Cartão" checked> Cartão</label>
+                <label><input type="radio" name="payment" value="Pix"> Pix</label>
+                <label><input type="radio" name="payment" value="Dinheiro"> Dinheiro</label>
+            </div>
+            <p class="text-red-500 hidden" id="payment-warn">Selecione uma forma de pagamento!</p>
+            <div id="pix-key-container" class="hidden mt-4 border-t pt-3">
+                <p class="font-bold mb-1">Pagamento via Pix</p>
+                <div class="flex items-center gap-2">
+                    <p id="pix-key" class="text-green-600 font-semibold select-all">--</p>
+                    <button id="copy-pix-btn" class="bg-gray-200 text-sm px-2 py-1 rounded hover:bg-gray-300">Copiar</button>
+                </div>
+                <div id="pix-qrcode-container" class="mt-3 flex justify-center"></div>
+                <div id="pix-timer" class="text-center text-sm text-gray-600 mt-2 hidden"></div>
+                <div class="mt-3 flex gap-2 justify-center">
+                    <button id="confirm-pix-btn" class="bg-blue-600 text-white px-3 py-1 rounded hidden">Já paguei — Confirmar pagamento</button>
+                </div>
+                <p id="pix-info" class="text-sm text-gray-600 mt-2 text-center">Escaneie o QR Code ou copie a chave para pagar e em seguida confirme.</p>
+            </div>
+            <div id="change-container" class="hidden mt-3 border-t pt-2">
+                <p><strong>Troco para:</strong></p>
+                <input type="number" id="change-for" placeholder="Ex: 50.00" class="w-full border p-1 rounded">
+            </div>
+            <div class="flex items-center justify-between mt-4 w-full">
+                <button id="close-modal-btn">Fechar</button>
+                <button id="checkout-btn" class="bg-green-500 text-white px-4 py-1 rounded">Finalizar Pedido</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="w-full bg-red-500 py-3 fixed bottom-0 z-40 flex items-center justify-center">
+        <button class="flex items-center gap-2 text-white font-bold" id="cart-btn">
+            (<span id="cart-count">0</span>) Veja meu carrinho <i class="fa fa-cart-plus text-lg text-white"></i>
+        </button>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

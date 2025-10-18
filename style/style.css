@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+body {
+    background-color: #f6f7f8;
+}
+
+
+/* Classe para bloquear scroll no body */
+.body-no-scroll {
+  overflow: hidden;
+}
+
+#cart-modal .modal-content {
+  max-height: 90vh; /* ou outro valor adequado */
+  overflow-y: auto;
+}
