@@ -247,7 +247,7 @@ function checkRestaurantOpen() {
   const data = new Date();
   const dia = data.getDay();
   const minAtual = data.getHours() * 60 + data.getMinutes();
-  const diasAbertos = [3,5,6];
+  const diasAbertos = [3,5,6,2];
   if(!diasAbertos.includes(dia)) return false;
   return minAtual >= 19*60 && minAtual <= 23*60+30;
 }
