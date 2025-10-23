@@ -156,7 +156,6 @@ function removeItemCart(name) {
 // =====================
 // PIX UI / Confirmação de pagamento
 // =====================
-
 function handlePaymentUIChange() {
   const sel = getSelectedPaymentMethod();
   paymentWarn.classList.add("hidden");
@@ -165,9 +164,13 @@ function handlePaymentUIChange() {
     pixKeyContainer.classList.remove("hidden");
     changeContainer.classList.add("hidden");
     showPixUI();
-  } else {
+  } else if (sel === "Dinheiro") {
+    changeContainer.classList.remove("hidden");
     pixKeyContainer.classList.add("hidden");
-    changeContainer.classList.toggle("hidden", sel === "Dinheiro");
+    invalidatePixRef();
+  } else { // Cartão
+    pixKeyContainer.classList.add("hidden");
+    changeContainer.classList.add("hidden");
     invalidatePixRef();
   }
 }
@@ -193,37 +196,29 @@ function showPixUI() {
     </div>
   `;
 
-  // Mostrar o botão de confirmação
   confirmPixBtn.classList.remove("hidden");
 
-  // Remover mensagem antiga
   const oldMsg = document.getElementById("pix-confirm-msg");
   if (oldMsg) oldMsg.remove();
 
-  // Resetar status
   pixConfirmed = false;
   currentGeneratedPixRef = generatePaymentRef(total);
 }
 
-// =====================
-// Confirmar pagamento Pix
-// =====================
 confirmPixBtn.addEventListener("click", () => {
   if (!cart.length) {
     Toastify({ text: "Carrinho vazio.", duration: 2500, style: { background: "#ef4444" } }).showToast();
     return;
   }
 
-  // Marcar Pix como confirmado
   pixConfirmed = true;
 
   Toastify({
     text: "Pagamento confirmado!",
     duration: 3000,
-    style: { background: "#10b981" } // verde
+    style: { background: "#10b981" }
   }).showToast();
 
-  // Mostrar frase pedindo envio do comprovante
   let msg = document.getElementById("pix-confirm-msg");
   if (!msg) {
     msg = document.createElement("p");
@@ -234,9 +229,6 @@ confirmPixBtn.addEventListener("click", () => {
   msg.textContent = "Após finalizar o pedido, envie o comprovante em nosso WhatsApp para que possamos confirmar rapidamente.";
 });
 
-// =====================
-// Função para invalidar Pix (resetar)
-// =====================
 function invalidatePixRef() {
   currentGeneratedPixRef = "";
   pixKeyText.textContent = "--";
@@ -248,8 +240,6 @@ function invalidatePixRef() {
   pixConfirmed = false;
 }
 
-
-
 // =====================
 // Header status
 // =====================
@@ -257,7 +247,7 @@ function checkRestaurantOpen() {
   const data = new Date();
   const dia = data.getDay();
   const minAtual = data.getHours() * 60 + data.getMinutes();
-  const diasAbertos = [3, 5, 6, 2]; // quarta, sexta, sábado, terça?
+  const diasAbertos = [3, 5, 6, 2];
   if (!diasAbertos.includes(dia)) return false;
   return minAtual >= 19 * 60 && minAtual <= 23 * 60 + 59;
 }
@@ -305,12 +295,13 @@ checkoutBtn.addEventListener("click", () => {
   const paymentMethod = getSelectedPaymentMethod();
   if (!paymentMethod) { paymentWarn.classList.remove("hidden"); return; }
 
-  // === VALIDAÇÃO DO TROCO ===
   const total = cart.reduce((acc, i) => acc + i.price * i.quantity, 0);
+
   if (paymentMethod === "Pix" && !pixConfirmed) {
     Toastify({ text: "Pague e confirme o Pix antes de finalizar.", duration: 3000, style: { background: "#f59e0b" } }).showToast();
     return;
   }
+
   if (paymentMethod === "Dinheiro") {
     const trocoValor = parseFloat(changeForInput.value);
     if (isNaN(trocoValor) || trocoValor < total) {
@@ -319,7 +310,6 @@ checkoutBtn.addEventListener("click", () => {
     }
   }
 
-  // Montar texto do pedido
   let textoPedido = `📦 *Novo Pedido*\n\n`;
   textoPedido += `👤 Cliente: ${customerNameInput.value.trim()}\n`;
   textoPedido += `📱 Telefone: ${customerPhoneInput.value.trim()}\n`;
@@ -341,7 +331,6 @@ checkoutBtn.addEventListener("click", () => {
   });
   textoPedido += `\n💵 Total: ${currencyBRL(total)}`;
 
-  // Abrir WhatsApp
   const whatsappNumber = "5544999038033"; // seu número
   const whatsappURL = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(textoPedido)}`;
   window.open(whatsappURL, "_blank");
