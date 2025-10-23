@@ -1,10 +1,4 @@
 // =====================
-// CONFIGURAÇÃO
-// =====================
-const BACKEND_URL = "https://aggravatedly-chiliadal-yamileth.ngrok-free.dev";
-// const BACKEND_URL = "http://localhost:3000"; // use para testes locais
-
-// =====================
 // Variáveis principais
 // =====================
 const menu = document.getElementById("menu");
@@ -51,10 +45,6 @@ let currentGeneratedPixRef = "";
 let pixTimerInterval = null;
 let pixConfirmed = false;
 
-// Contadores locais
-let nextDeliveryNumber = 1;
-let nextBalcaoNumber = 1;
-
 // Chave PIX fixa
 const RECEIVER_PIX_KEY = "hauankawai@gmail.com";
 
@@ -64,16 +54,12 @@ const RECEIVER_PIX_KEY = "hauankawai@gmail.com";
 function currencyBRL(value) {
   return value.toLocaleString("pt-br", { style: "currency", currency: "BRL" });
 }
-function generatePaymentRef(amount) {
-  const rand = Math.random().toString(16).slice(2, 8).toUpperCase();
-  const timestamp = Date.now().toString(36).toUpperCase();
-  const cents = Math.round(amount * 100);
-  return `MCKY_${timestamp}_${rand}_V${cents}`;
-}
+
 function getSelectedPaymentMethod() {
   for (const pm of paymentMethods) if (pm.checked) return pm.value;
   return null;
 }
+
 function getSelectedDeliveryType() {
   for (const r of deliveryTypeRadios) if (r.checked) return r.value;
   return "retirada";
@@ -87,10 +73,12 @@ cartBtn.addEventListener("click", () => {
   cartModal.style.display = "flex";
   document.body.classList.add("body-no-scroll");
 });
+
 closeModalBtn.addEventListener("click", () => {
   cartModal.style.display = "none";
   document.body.classList.remove("body-no-scroll");
 });
+
 cartModal.addEventListener("click", (e) => {
   if (e.target === cartModal) {
     cartModal.style.display = "none";
@@ -166,34 +154,29 @@ function removeItemCart(name) {
 }
 
 // =====================
-// PIX UI / referência
+// PIX UI / Confirmação de pagamento
 // =====================
-function invalidatePixRef() {
-  currentGeneratedPixRef = "";
-  pixKeyText.textContent = "--";
-  pixQrContainer.innerHTML = "";
-  pixTimerEl.classList.add("hidden");
-  confirmPixBtn.classList.add("hidden");
-  clearInterval(pixTimerInterval);
-}
 
 function handlePaymentUIChange() {
   const sel = getSelectedPaymentMethod();
   paymentWarn.classList.add("hidden");
+
   if (sel === "Pix") {
     pixKeyContainer.classList.remove("hidden");
     changeContainer.classList.add("hidden");
-    generatePixRefForUI();
+    showPixUI();
   } else {
     pixKeyContainer.classList.add("hidden");
-    changeContainer.classList.toggle("hidden", sel !== "Dinheiro");
+    changeContainer.classList.toggle("hidden", sel === "Dinheiro");
     invalidatePixRef();
   }
 }
+
 paymentMethods.forEach(pm => pm.addEventListener("change", handlePaymentUIChange));
 
-function generatePixRefForUI() {
+function showPixUI() {
   const total = cart.reduce((acc, i) => acc + i.price * i.quantity, 0);
+
   if (total <= 0) {
     pixQrContainer.innerHTML = `<p class="text-red-600">Adicione itens ao carrinho para gerar pagamento.</p>`;
     pixKeyText.textContent = "--";
@@ -201,44 +184,71 @@ function generatePixRefForUI() {
   }
 
   pixKeyText.textContent = RECEIVER_PIX_KEY;
-  const whatsappNumber = "5544999038033";
-  const whatsappMsg = encodeURIComponent(`Olá, estou enviando o comprovante do pagamento de R$ ${total.toFixed(2)}`);
 
   pixQrContainer.innerHTML = `
     <div class="text-center">
       <p class="font-medium text-lg mb-2">Chave PIX:</p>
-      <p class="break-all select-all text-xl font-semibold mb-4">${RECEIVER_PIX_KEY}</p>
+      <p class="break-all select-all text-xl font-semibold mb-2">${RECEIVER_PIX_KEY}</p>
       <p class="mt-2 mb-4 text-lg">Valor: <strong>${currencyBRL(total)}</strong></p>
-      <a href="https://wa.me/${whatsappNumber}?text=${whatsappMsg}" target="_blank" 
-         class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl hover:from-green-600 hover:to-green-700 transition duration-300">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M20.52 3.48A11.987 11.987 0 0012 0C5.37 0 0 5.37 0 12a11.987 11.987 0 003.48 8.52l-1.38 4.98 4.98-1.38A11.987 11.987 0 0012 24c6.63 0 12-5.37 12-12a11.987 11.987 0 00-3.48-8.52zM12 22a10 10 0 01-5.66-1.81l-.4-.25-2.96.82.82-2.96-.25-.4A10 10 0 1122 12a10 10 0 01-10 10z"/>
-        </svg>
-        Enviar comprovante
-      </a>
     </div>
   `;
-  confirmPixBtn.classList.add("hidden");
-  pixTimerEl.classList.add("hidden");
+
+  // Mostrar o botão de confirmação
+  confirmPixBtn.classList.remove("hidden");
+
+  // Remover mensagem antiga
+  const oldMsg = document.getElementById("pix-confirm-msg");
+  if (oldMsg) oldMsg.remove();
+
+  // Resetar status
+  pixConfirmed = false;
+  currentGeneratedPixRef = generatePaymentRef(total);
 }
 
 // =====================
-// Confirmar PIX
+// Confirmar pagamento Pix
 // =====================
 confirmPixBtn.addEventListener("click", () => {
-  if (!currentGeneratedPixRef) {
-    Toastify({ text: "Referência inválida/expirada.", duration: 2500, style: { background: "#ef4444" } }).showToast();
+  if (!cart.length) {
+    Toastify({ text: "Carrinho vazio.", duration: 2500, style: { background: "#ef4444" } }).showToast();
     return;
   }
-  const expiresAt = parseInt(pixTimerEl.dataset.expiresAt || "0", 10);
-  if (Date.now() > expiresAt) {
-    Toastify({ text: "Referência expirada.", duration: 2500, style: { background: "#ef4444" } }).showToast();
-    currentGeneratedPixRef = "";
-    return;
-  }
+
+  // Marcar Pix como confirmado
   pixConfirmed = true;
-  Toastify({ text: "Pagamento marcado como confirmado.", duration: 2500, style: { background: "#10b981" } }).showToast();
+
+  Toastify({
+    text: "Pagamento confirmado!",
+    duration: 3000,
+    style: { background: "#10b981" } // verde
+  }).showToast();
+
+  // Mostrar frase pedindo envio do comprovante
+  let msg = document.getElementById("pix-confirm-msg");
+  if (!msg) {
+    msg = document.createElement("p");
+    msg.id = "pix-confirm-msg";
+    msg.className = "mt-2 text-sm text-gray-700";
+    confirmPixBtn.insertAdjacentElement("afterend", msg);
+  }
+  msg.textContent = "Após finalizar o pedido, envie o comprovante em nosso WhatsApp para que possamos confirmar rapidamente.";
 });
+
+// =====================
+// Função para invalidar Pix (resetar)
+// =====================
+function invalidatePixRef() {
+  currentGeneratedPixRef = "";
+  pixKeyText.textContent = "--";
+  pixQrContainer.innerHTML = "";
+  pixTimerEl.classList.add("hidden");
+  confirmPixBtn.classList.add("hidden");
+  const oldMsg = document.getElementById("pix-confirm-msg");
+  if (oldMsg) oldMsg.remove();
+  pixConfirmed = false;
+}
+
+
 
 // =====================
 // Header status
@@ -247,15 +257,15 @@ function checkRestaurantOpen() {
   const data = new Date();
   const dia = data.getDay();
   const minAtual = data.getHours() * 60 + data.getMinutes();
-  const diasAbertos = [3,5,6,2];
-  if(!diasAbertos.includes(dia)) return false;
-  return minAtual >= 19*60 && minAtual <= 23*60+59;
+  const diasAbertos = [3, 5, 6, 2]; // quarta, sexta, sábado, terça?
+  if (!diasAbertos.includes(dia)) return false;
+  return minAtual >= 19 * 60 && minAtual <= 23 * 60 + 59;
 }
 
 function updateHeaderStatus() {
-  if(!headerStatus) return;
+  if (!headerStatus) return;
   const open = checkRestaurantOpen();
-  if(open){
+  if (open) {
     headerStatus.textContent = "Aberto agora - Quarta, Sexta e Sábado: 19:00 às 23:30";
     headerStatus.classList.remove("bg-red-500"); headerStatus.classList.add("bg-green-500");
   } else {
@@ -264,83 +274,72 @@ function updateHeaderStatus() {
   }
 }
 updateHeaderStatus();
-setInterval(updateHeaderStatus,60000);
+setInterval(updateHeaderStatus, 60000);
 
 // =====================
 // Entrega UI
 // =====================
 deliveryTypeRadios.forEach(r => r.addEventListener("change", () => {
-  if(getSelectedDeliveryType() === "entrega") addressSection.classList.remove("hidden");
+  if (getSelectedDeliveryType() === "entrega") addressSection.classList.remove("hidden");
   else addressSection.classList.add("hidden");
 }));
 
 // =====================
-// Checkout / enviar pedido
+// Checkout / enviar pedido para WhatsApp
 // =====================
-checkoutBtn.addEventListener("click", async () => {
-  if(!checkRestaurantOpen()){
-    Toastify({ text:"Lanchonete fechada!", duration:2500, style:{background:"#ef4444"}}).showToast(); return;
+checkoutBtn.addEventListener("click", () => {
+  if (!checkRestaurantOpen()) {
+    Toastify({ text: "Lanchonete fechada!", duration: 2500, style: { background: "#ef4444" } }).showToast();
+    return;
   }
-  if(!cart.length){ Toastify({text:"Carrinho vazio.", duration:2500}).showToast(); return; }
-  if(!customerNameInput.value.trim()){ nameWarn.classList.remove("hidden"); return; }
-  if(!/^\d{8,15}$/.test(customerPhoneInput.value.trim())){ phoneWarn.classList.remove("hidden"); return; }
+  if (!cart.length) { Toastify({ text: "Carrinho vazio.", duration: 2500 }).showToast(); return; }
+  if (!customerNameInput.value.trim()) { nameWarn.classList.remove("hidden"); return; }
+  if (!/^\d{8,15}$/.test(customerPhoneInput.value.trim())) { phoneWarn.classList.remove("hidden"); return; }
 
   const deliveryType = getSelectedDeliveryType();
-  if(deliveryType==="entrega" && (!streetInput.value.trim() || !neighborhoodInput.value.trim() || !numberInput.value.trim())){
+  if (deliveryType === "entrega" && (!streetInput.value.trim() || !neighborhoodInput.value.trim() || !numberInput.value.trim())) {
     addressWarn.classList.remove("hidden"); return;
   }
   addressWarn.classList.add("hidden");
 
   const paymentMethod = getSelectedPaymentMethod();
-  if(!paymentMethod){ paymentWarn.classList.remove("hidden"); return; }
-  if(paymentMethod==="Pix" && !pixConfirmed){
-    Toastify({text:"Pague e confirme o Pix antes de finalizar.", duration:3000, style:{background:"#f59e0b"}}).showToast();
+  if (!paymentMethod) { paymentWarn.classList.remove("hidden"); return; }
+  if (paymentMethod === "Pix" && !pixConfirmed) {
+    Toastify({ text: "Pague e confirme o Pix antes de finalizar.", duration: 3000, style: { background: "#f59e0b" } }).showToast();
     return;
   }
 
-  const total = cart.reduce((acc,i)=>acc+i.price*i.quantity,0);
-
-  const pedido = {
-    cliente: customerNameInput.value.trim(),
-    telefone: customerPhoneInput.value.trim(),
-    tipo_entrega: deliveryType,
-    endereco: deliveryType==="entrega" ? `${streetInput.value.trim()}, ${numberInput.value.trim()}, ${neighborhoodInput.value.trim()}` : "",
-    itens: cart,
-    total,
-    observacoes: observationsInput.value.trim(),
-    pagamento: paymentMethod,
-    pix_chave: paymentMethod==="Pix"?RECEIVER_PIX_KEY:null,
-    pix_valor: paymentMethod==="Pix"?total:null,
-    pix_referencia: paymentMethod==="Pix"?currentGeneratedPixRef:null
-  };
-
-  try{
-    const res = await fetch(`${BACKEND_URL}/api/pedido`, {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify(pedido)
-    });
-    const data = await res.json();
-    if(!data.sucesso) throw new Error(data.mensagem||"Erro desconhecido");
-
-    Swal.fire({
-      title:"Pedido recebido!",
-      html:"Seu pedido está sendo processado e chegará em até <strong>30 minutos</strong>.",
-      icon:"success",
-      confirmButtonText:"Ok"
-    });
-
-    cart = [];
-    updateCartModal();
-    streetInput.value = neighborhoodInput.value = numberInput.value = observationsInput.value = "";
-    customerNameInput.value = customerPhoneInput.value = changeForInput.value = "";
-    pixConfirmed = false; currentGeneratedPixRef = "";
-    paymentMethods.forEach(pm => pm.checked = pm.value==="Cartão");
-    handlePaymentUIChange();
-
-    if(typeof refreshPedidosPainel==="function") refreshPedidosPainel();
-  } catch(err){
-    console.error("Erro ao enviar pedido:", err);
-    Swal.fire({title:"Erro", text:"Não foi possível enviar o pedido: "+err.message, icon:"error"});
+  // Montar texto do pedido
+  let textoPedido = `📦 *Novo Pedido*\n\n`;
+  textoPedido += `👤 Cliente: ${customerNameInput.value.trim()}\n`;
+  textoPedido += `📱 Telefone: ${customerPhoneInput.value.trim()}\n`;
+  textoPedido += `🚚 Tipo de entrega: ${deliveryType}\n`;
+  if (deliveryType === "entrega") {
+    textoPedido += `🏠 Endereço: ${streetInput.value.trim()}, ${numberInput.value.trim()}, ${neighborhoodInput.value.trim()}\n`;
   }
+  textoPedido += `💰 Pagamento: ${paymentMethod}\n`;
+  if (paymentMethod === "Pix") {
+    // textoPedido += `🔑 Chave PIX: ${RECEIVER_PIX_KEY}\n`;
+    textoPedido += `💵 Valor: ${currencyBRL(cart.reduce((acc, i) => acc + i.price * i.quantity, 0))}\n`;
+  }
+  textoPedido += `📝 Observações: ${observationsInput.value.trim() || "Nenhuma"}\n\n`;
+  textoPedido += `🛒 Itens:\n`;
+  cart.forEach(i => {
+    textoPedido += `- ${i.name} x${i.quantity} (${currencyBRL(i.price * i.quantity)})\n`;
+  });
+  textoPedido += `\n💵 Total: ${currencyBRL(cart.reduce((acc, i) => acc + i.price * i.quantity, 0))}`;
+
+  // Abrir WhatsApp
+  const whatsappNumber = "5544999038033"; // seu número
+  const whatsappURL = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(textoPedido)}`;
+  window.open(whatsappURL, "_blank");
+
+  // Resetar carrinho
+  cart = [];
+  updateCartModal();
+  streetInput.value = neighborhoodInput.value = numberInput.value = observationsInput.value = "";
+  customerNameInput.value = customerPhoneInput.value = changeForInput.value = "";
+  pixConfirmed = false; currentGeneratedPixRef = "";
+  paymentMethods.forEach(pm => pm.checked = pm.value === "Cartão");
+  handlePaymentUIChange();
 });
