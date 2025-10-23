@@ -304,9 +304,19 @@ checkoutBtn.addEventListener("click", () => {
 
   const paymentMethod = getSelectedPaymentMethod();
   if (!paymentMethod) { paymentWarn.classList.remove("hidden"); return; }
+
+  // === VALIDAÇÃO DO TROCO ===
+  const total = cart.reduce((acc, i) => acc + i.price * i.quantity, 0);
   if (paymentMethod === "Pix" && !pixConfirmed) {
     Toastify({ text: "Pague e confirme o Pix antes de finalizar.", duration: 3000, style: { background: "#f59e0b" } }).showToast();
     return;
+  }
+  if (paymentMethod === "Dinheiro") {
+    const trocoValor = parseFloat(changeForInput.value);
+    if (isNaN(trocoValor) || trocoValor < total) {
+      Toastify({ text: "Troco inválido! O valor deve ser maior que o total do pedido.", duration: 3000, style: { background: "#ef4444" } }).showToast();
+      return;
+    }
   }
 
   // Montar texto do pedido
@@ -319,15 +329,17 @@ checkoutBtn.addEventListener("click", () => {
   }
   textoPedido += `💰 Pagamento: ${paymentMethod}\n`;
   if (paymentMethod === "Pix") {
-    // textoPedido += `🔑 Chave PIX: ${RECEIVER_PIX_KEY}\n`;
-    textoPedido += `💵 Valor: ${currencyBRL(cart.reduce((acc, i) => acc + i.price * i.quantity, 0))}\n`;
+    textoPedido += `💵 Valor: ${currencyBRL(total)}\n`;
+  }
+  if (paymentMethod === "Dinheiro") {
+    textoPedido += `💵 Troco para: ${currencyBRL(parseFloat(changeForInput.value))}\n`;
   }
   textoPedido += `📝 Observações: ${observationsInput.value.trim() || "Nenhuma"}\n\n`;
   textoPedido += `🛒 Itens:\n`;
   cart.forEach(i => {
     textoPedido += `- ${i.name} x${i.quantity} (${currencyBRL(i.price * i.quantity)})\n`;
   });
-  textoPedido += `\n💵 Total: ${currencyBRL(cart.reduce((acc, i) => acc + i.price * i.quantity, 0))}`;
+  textoPedido += `\n💵 Total: ${currencyBRL(total)}`;
 
   // Abrir WhatsApp
   const whatsappNumber = "5544999038033"; // seu número
