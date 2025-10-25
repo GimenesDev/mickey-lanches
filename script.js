@@ -331,9 +331,29 @@ checkoutBtn.addEventListener("click", () => {
   });
   textoPedido += `\n💵 Total: ${currencyBRL(total)}`;
 
-  const whatsappNumber = "5544999038033"; // seu número
-  const whatsappURL = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(textoPedido)}`;
-  window.open(whatsappURL, "_blank");
+  // const whatsappNumber = "5544999038033"; // seu número
+  // const whatsappURL = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(textoPedido)}`;
+  // window.open(whatsappURL, "_blank");
+  fetch("http://localhost:3001/api/pedidos", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    customer_name: customerNameInput.value.trim(),
+    customer_phone: customerPhoneInput.value.trim(),
+    delivery_type: deliveryType,
+    address: deliveryType === "entrega" ? `${streetInput.value}, ${numberInput.value}, ${neighborhoodInput.value}` : "",
+    payment_method: paymentMethod,
+    total,
+    observations: observationsInput.value.trim(),
+    items: cart
+  })
+})
+.then(() => {
+  Toastify({ text: "Pedido enviado ao painel!", duration: 3000, style: { background: "#16a34a" } }).showToast();
+})
+.catch(() => {
+  Toastify({ text: "Erro ao enviar pedido!", duration: 3000, style: { background: "#ef4444" } }).showToast();
+});
 
   // Resetar carrinho
   cart = [];
