@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Painel de Pedidos - Mickey Lanches</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+  <header class="bg-red-600 text-white py-4 px-6 flex justify-between items-center shadow">
+    <h1 class="text-2xl font-bold">🍔 Mickey Lanches — Painel</h1>
+    <div class="flex gap-3 items-center">
+      <p id="caixa-status" class="font-semibold"></p>
+      <button id="abrir-caixa" class="bg-green-600 px-4 py-2 rounded hover:bg-green-700">Abrir Caixa</button>
+      <button id="fechar-caixa" class="bg-yellow-500 px-4 py-2 rounded hover:bg-yellow-600 hidden">Fechar Caixa</button>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto py-6 px-4">
+    <h2 class="text-xl font-bold mb-4">📦 Pedidos</h2>
+    <div id="pedidos-container" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+  </main>
+
+  <footer class="text-center text-sm text-gray-600 py-3 border-t mt-6">
+    Sistema de Delivery © 2025 - Mickey Lanches
+  </footer>
+
+  <script>
+    const pedidosContainer = document.getElementById("pedidos-container");
+    const caixaStatus = document.getElementById("caixa-status");
+    const abrirCaixaBtn = document.getElementById("abrir-caixa");
+    const fecharCaixaBtn = document.getElementById("fechar-caixa");
+
+    const API = "http://localhost:3001/api";
+
+    async function atualizarStatusCaixa() {
+      const res = await fetch(`${API}/caixa/status`);
+      const caixa = await res.json();
+
+      if (caixa.aberto) {
+        caixaStatus.innerHTML = "🟢 Caixa aberto desde: " + new Date(caixa.aberto_em).toLocaleString("pt-BR");
+        abrirCaixaBtn.classList.add("hidden");
+        fecharCaixaBtn.classList.remove("hidden");
+      } else {
+        caixaStatus.innerHTML = "🔴 Caixa fechado";
+        abrirCaixaBtn.classList.remove("hidden");
+        fecharCaixaBtn.classList.add("hidden");
+      }
+    }
+
+    async function abrirCaixa() {
+      await fetch(`${API}/caixa/abrir`, { method: "POST" });
+      Swal.fire("Caixa aberto!", "Pronto para receber pedidos.", "success");
+      atualizarStatusCaixa();
+      carregarPedidos();
+    }
+
+    async function fecharCaixa() {
+      const confirm = await Swal.fire({
+        title: "Deseja fechar o caixa?",
+        text: "Será gerado o relatório em PDF e todos os pedidos serão limpos.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Sim, fechar",
+        cancelButtonText: "Cancelar"
+      });
+      if (!confirm.isConfirmed) return;
+
+      const res = await fetch(`${API}/caixa/fechar`, { method: "POST" });
+      const data = await res.json();
+
+      if (data.success) {
+        Swal.fire({
+          title: "Caixa fechado!",
+          html: `Relatório gerado:<br><a href="${data.relatorio}" target="_blank" class="text-blue-600 underline">Baixar PDF</a>`,
+          icon: "success"
+        });
+        carregarPedidos();
+        atualizarStatusCaixa();
+      }
+    }
+
+    async function carregarPedidos() {
+      const res = await fetch(`${API}/pedidos`);
+      const pedidos = await res.json();
+
+      pedidosContainer.innerHTML = "";
+      if (!pedidos.length) {
+        pedidosContainer.innerHTML = "<p class='text-gray-500 text-center col-span-3'>Nenhum pedido por enquanto...</p>";
+        return;
+      }
+
+      pedidos.forEach(p => {
+        const div = document.createElement("div");
+        div.className = "bg-white rounded shadow p-4 border border-gray-200 flex flex-col justify-between";
+
+        div.innerHTML = `
+          <div>
+            <p class="font-bold text-lg mb-1">👤 ${p.customer_name}</p>
+            <p class="text-sm text-gray-600">📱 ${p.customer_phone}</p>
+            <p class="text-sm">💰 R$ ${p.total.toFixed(2)}</p>
+            <p class="text-sm">🕒 ${new Date(p.created_at).toLocaleString("pt-BR")}</p>
+            <p class="text-sm mt-2">📝 <strong>Status:</strong> <span class="font-semibold">${p.status}</span></p>
+            <p class="text-sm mt-2 text-gray-700">🛒 <strong>Itens:</strong> ${JSON.parse(p.items).map(i => i.name + " x" + i.quantity).join(", ")}</p>
+            ${p.observations ? `<p class="text-sm mt-2 text-gray-700">🗒️ ${p.observations}</p>` : ""}
+            ${p.tipo_pedido === "entrega" && p.endereco ? `
+              <p class="text-sm mt-2">🏠 <strong>Endereço:</strong> ${p.endereco.rua}, ${p.endereco.numero}, ${p.endereco.bairro}, ${p.endereco.cidade} - ${p.endereco.cep}</p>` : ""}
+          </div>
+          <div class="flex justify-between mt-4 gap-1 flex-wrap">
+            <button class="bg-yellow-500 text-white px-2 py-1 rounded text-sm" onclick="mudarStatus(${p.id}, 'em preparo', true)">Em Preparo</button>
+            <button class="bg-blue-500 text-white px-2 py-1 rounded text-sm" onclick="mudarStatus(${p.id}, 'saiu pra entrega')">Saiu</button>
+            <button class="bg-green-600 text-white px-2 py-1 rounded text-sm" onclick="mudarStatus(${p.id}, 'finalizado')">Finalizado</button>
+            <button class="bg-gray-600 text-white px-2 py-1 rounded text-sm" onclick="imprimirPedido(${p.id})">Reimprimir</button>
+          </div>
+        `;
+
+        pedidosContainer.appendChild(div);
+      });
+    }
+
+    async function mudarStatus(id, status, imprimir=false) {
+      const res = await fetch(`${API}/pedidos/${id}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status })
+      });
+      const pedidoAtualizado = await res.json();
+
+      if (imprimir) imprimirPedido(pedidoAtualizado);
+
+      Swal.fire("Status atualizado!", "O cliente verá a atualização em tempo real.", "success");
+      carregarPedidos();
+    }
+
+    async function imprimirPedido(pedidoId) {
+      // Buscar pedido atualizado
+      const res = await fetch(`${API}/pedidos/${pedidoId}`);
+      const pedido = await res.json();
+
+      const win = window.open("", "_blank");
+      win.document.write("<h1 style='text-align:center'>🍔 Mickey Lanches</h1>");
+      win.document.write(`<p><strong>Cliente:</strong> ${pedido.customer_name}</p>`);
+      win.document.write(`<p><strong>Telefone:</strong> ${pedido.customer_phone}</p>`);
+      win.document.write(`<p><strong>Tipo de Pedido:</strong> ${pedido.tipo_pedido}</p>`);
+
+      if (pedido.tipo_pedido === "entrega" && pedido.endereco) {
+        win.document.write(`<p><strong>Endereço:</strong> ${pedido.endereco.rua}, ${pedido.endereco.numero}, ${pedido.endereco.bairro}, ${pedido.endereco.cidade} - ${pedido.endereco.cep}</p>`);
+      }
+
+      win.document.write(`<p><strong>Status:</strong> ${pedido.status}</p>`);
+      win.document.write(`<p><strong>Itens:</strong></p><ul>`);
+      JSON.parse(pedido.items).forEach(i => {
+        win.document.write(`<li>${i.name} x ${i.quantity}</li>`);
+      });
+      win.document.write("</ul>");
+      if (pedido.observations) win.document.write(`<p><strong>Observações:</strong> ${pedido.observations}</p>`);
+      win.document.write(`<p><strong>Total:</strong> R$ ${pedido.total.toFixed(2)}</p>`);
+      win.document.write(`<p><strong>Data/Hora:</strong> ${new Date(pedido.created_at).toLocaleString("pt-BR")}</p>`);
+      win.document.close();
+      win.print();
+    }
+
+    abrirCaixaBtn.addEventListener("click", abrirCaixa);
+    fecharCaixaBtn.addEventListener("click", fecharCaixa);
+
+    atualizarStatusCaixa();
+    carregarPedidos();
+    setInterval(carregarPedidos, 10000); // Atualiza a cada 10s
+  </script>
+</body>
+</html>

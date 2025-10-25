@@ -1,0 +1,49 @@
+[
+  {
+    "id": 1761415494490,
+    "customer_name": "ANNA CLAUDIA GIMENES JUQUIEL",
+    "customer_phone": "44999589151",
+    "items": "\"1 xsalada\"",
+    "status": "pendente",
+    "created_at": "2025-10-25T18:04:54.490Z",
+    "observations": "sem alface"
+  },
+  {
+    "id": 1761415577803,
+    "customer_name": "ANNA CLAUDIA GIMENES JUQUIEL",
+    "customer_phone": "44999589151",
+    "items": "\"1 xsalada\"",
+    "status": "pendente",
+    "created_at": "2025-10-25T18:06:17.803Z",
+    "observations": ""
+  },
+  {
+    "id": 1761415722309,
+    "customer_name": "Hauan Kawai Gimenes de almeida",
+    "customer_phone": "44999038033",
+    "items": "\"ryuk\"",
+    "status": "pendente",
+    "created_at": "2025-10-25T18:08:42.309Z",
+    "observations": "ryuk"
+  },
+  {
+    "id": 1761415741032,
+    "customer_name": "Hauan Kawai Gimenes de almeida",
+    "customer_phone": "44999038033",
+    "items": "[{\"name\":\"X-Frango\",\"price\":26,\"quantity\":1}]",
+    "total": 26,
+    "status": "pendente",
+    "created_at": "2025-10-25T18:09:01.032Z",
+    "observations": ""
+  },
+  {
+    "id": 1761415749319,
+    "customer_name": "Hauan Kawai Gimenes de almeida",
+    "customer_phone": "44999038033",
+    "items": "[{\"name\":\"X-Frango\",\"price\":26,\"quantity\":5}]",
+    "total": 130,
+    "status": "pendente",
+    "created_at": "2025-10-25T18:09:09.319Z",
+    "observations": ""
+  }
+]

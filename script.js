@@ -348,12 +348,35 @@ checkoutBtn.addEventListener("click", () => {
     items: cart
   })
 })
+
+
 .then(() => {
   Toastify({ text: "Pedido enviado ao painel!", duration: 3000, style: { background: "#16a34a" } }).showToast();
 })
 .catch(() => {
   Toastify({ text: "Erro ao enviar pedido!", duration: 3000, style: { background: "#ef4444" } }).showToast();
 });
+
+// Após o pedido ser enviado e salvo no backend
+fetch("http://localhost:3001/api/pedidos", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(pedido)
+})
+.then(res => res.json())
+.then(data => {
+  if (data.success) {
+    // Salva o ID do pedido no navegador
+    localStorage.setItem("pedidoId", data.id);
+
+    // Exibe aviso de confirmação
+    alert("✅ Pedido realizado com sucesso! Aguarde as atualizações do status.");
+
+    // Começa a acompanhar o status
+    iniciarMonitoramentoStatus();
+  }
+});
+
 
   // Resetar carrinho
   cart = [];
@@ -364,3 +387,46 @@ checkoutBtn.addEventListener("click", () => {
   paymentMethods.forEach(pm => pm.checked = pm.value === "Cartão");
   handlePaymentUIChange();
 });
+
+
+async function iniciarMonitoramentoStatus() {
+  const pedidoId = localStorage.getItem("pedidoId");
+  if (!pedidoId) return;
+
+  let ultimoStatus = null;
+
+  async function verificarStatus() {
+    try {
+      const res = await fetch(`http://localhost:3001/api/pedidos/${pedidoId}`);
+      if (!res.ok) return;
+      const pedido = await res.json();
+
+      if (pedido.status !== ultimoStatus) {
+        ultimoStatus = pedido.status;
+
+        if (pedido.status === "em preparo") {
+          mostrarAvisoCliente("🍳 Seu pedido está em preparo!");
+        } else if (pedido.status === "saiu pra entrega") {
+          mostrarAvisoCliente("🏍️ Seu pedido saiu para entrega!");
+        } else if (pedido.status === "finalizado") {
+          mostrarAvisoCliente("✅ Seu pedido foi finalizado! Bom apetite!");
+          localStorage.removeItem("pedidoId");
+        }
+      }
+    } catch (err) {
+      console.error("Erro ao verificar status do pedido:", err);
+    }
+  }
+
+  setInterval(verificarStatus, 5000); // Verifica a cada 5 segundos
+  verificarStatus();
+}
+
+function mostrarAvisoCliente(mensagem) {
+  // Você pode usar Tailwind + Toast bonito ou apenas um alert simples:
+  const aviso = document.createElement("div");
+  aviso.className = "fixed bottom-5 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-4 py-2 rounded shadow-lg animate-bounce";
+  aviso.innerText = mensagem;
+  document.body.appendChild(aviso);
+  setTimeout(() => aviso.remove(), 7000);
+}
