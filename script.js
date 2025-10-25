@@ -1,3 +1,4 @@
+
 // =====================
 // Variáveis principais
 // =====================
@@ -156,6 +157,7 @@ function removeItemCart(name) {
 // =====================
 // PIX UI / Confirmação de pagamento
 // =====================
+
 function handlePaymentUIChange() {
   const sel = getSelectedPaymentMethod();
   paymentWarn.classList.add("hidden");
@@ -164,9 +166,11 @@ function handlePaymentUIChange() {
     pixKeyContainer.classList.remove("hidden");
     changeContainer.classList.add("hidden");
     showPixUI();
+
   } else if (sel === "Dinheiro") {
     changeContainer.classList.remove("hidden");
     pixKeyContainer.classList.add("hidden");
+    changeContainer.classList.toggle("hidden", sel === "Dinheiro");
     invalidatePixRef();
   } else { // Cartão
     pixKeyContainer.classList.add("hidden");
@@ -196,29 +200,38 @@ function showPixUI() {
     </div>
   `;
 
+  // Mostrar o botão de confirmação
   confirmPixBtn.classList.remove("hidden");
 
+  // Remover mensagem antiga
   const oldMsg = document.getElementById("pix-confirm-msg");
   if (oldMsg) oldMsg.remove();
 
+  // Resetar status
   pixConfirmed = false;
   currentGeneratedPixRef = generatePaymentRef(total);
 }
 
+// =====================
+// Confirmar pagamento Pix
+// =====================
 confirmPixBtn.addEventListener("click", () => {
   if (!cart.length) {
     Toastify({ text: "Carrinho vazio.", duration: 2500, style: { background: "#ef4444" } }).showToast();
     return;
   }
 
+  // Marcar Pix como confirmado
   pixConfirmed = true;
 
   Toastify({
     text: "Pagamento confirmado!",
     duration: 3000,
-    style: { background: "#10b981" }
+    style: { background: "#10b981" } // verde
+    // style: { background: "#10b981" }
   }).showToast();
 
+  // Mostrar frase pedindo envio do comprovante
   let msg = document.getElementById("pix-confirm-msg");
   if (!msg) {
     msg = document.createElement("p");
@@ -229,6 +242,9 @@ confirmPixBtn.addEventListener("click", () => {
   msg.textContent = "Após finalizar o pedido, envie o comprovante em nosso WhatsApp para que possamos confirmar rapidamente.";
 });
 
+// =====================
+// Função para invalidar Pix (resetar)
+// =====================
 function invalidatePixRef() {
   currentGeneratedPixRef = "";
   pixKeyText.textContent = "--";
@@ -240,6 +256,8 @@ function invalidatePixRef() {
   pixConfirmed = false;
 }
 
+
+
 // =====================
 // Header status
 // =====================
@@ -247,9 +265,9 @@ function checkRestaurantOpen() {
   const data = new Date();
   const dia = data.getDay();
   const minAtual = data.getHours() * 60 + data.getMinutes();
-  const diasAbertos = [3, 5, 6, 2, 4];
+  const diasAbertos = [3, 5, 6, 2]; // quarta, sexta, sábado, terça?
   if (!diasAbertos.includes(dia)) return false;
-  return minAtual >= 8 * 60 && minAtual <= 23 * 60 + 59;
+  return minAtual >= 16 * 60 && minAtual <= 23 * 60 + 59;
 }
 
 function updateHeaderStatus() {
@@ -295,6 +313,7 @@ checkoutBtn.addEventListener("click", () => {
   const paymentMethod = getSelectedPaymentMethod();
   if (!paymentMethod) { paymentWarn.classList.remove("hidden"); return; }
 
+  // === VALIDAÇÃO DO TROCO ===
   const total = cart.reduce((acc, i) => acc + i.price * i.quantity, 0);
 
   if (paymentMethod === "Pix" && !pixConfirmed) {
@@ -310,6 +329,7 @@ checkoutBtn.addEventListener("click", () => {
     }
   }
 
+  // Montar texto do pedido
   let textoPedido = `📦 *Novo Pedido*\n\n`;
   textoPedido += `👤 Cliente: ${customerNameInput.value.trim()}\n`;
   textoPedido += `📱 Telefone: ${customerPhoneInput.value.trim()}\n`;
@@ -331,52 +351,10 @@ checkoutBtn.addEventListener("click", () => {
   });
   textoPedido += `\n💵 Total: ${currencyBRL(total)}`;
 
-  // const whatsappNumber = "5544999038033"; // seu número
-  // const whatsappURL = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(textoPedido)}`;
-  // window.open(whatsappURL, "_blank");
-  fetch("http://localhost:3001/api/pedidos", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    customer_name: customerNameInput.value.trim(),
-    customer_phone: customerPhoneInput.value.trim(),
-    delivery_type: deliveryType,
-    address: deliveryType === "entrega" ? `${streetInput.value}, ${numberInput.value}, ${neighborhoodInput.value}` : "",
-    payment_method: paymentMethod,
-    total,
-    observations: observationsInput.value.trim(),
-    items: cart
-  })
-})
-
-
-.then(() => {
-  Toastify({ text: "Pedido enviado ao painel!", duration: 3000, style: { background: "#16a34a" } }).showToast();
-})
-.catch(() => {
-  Toastify({ text: "Erro ao enviar pedido!", duration: 3000, style: { background: "#ef4444" } }).showToast();
-});
-
-// Após o pedido ser enviado e salvo no backend
-fetch("http://localhost:3001/api/pedidos", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify(pedido)
-})
-.then(res => res.json())
-.then(data => {
-  if (data.success) {
-    // Salva o ID do pedido no navegador
-    localStorage.setItem("pedidoId", data.id);
-
-    // Exibe aviso de confirmação
-    alert("✅ Pedido realizado com sucesso! Aguarde as atualizações do status.");
-
-    // Começa a acompanhar o status
-    iniciarMonitoramentoStatus();
-  }
-});
-
+  // Abrir WhatsApp
+  const whatsappNumber = "5544999038033"; // seu número
+  const whatsappURL = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(textoPedido)}`;
+  window.open(whatsappURL, "_blank");
 
   // Resetar carrinho
   cart = [];
@@ -387,46 +365,3 @@ fetch("http://localhost:3001/api/pedidos", {
   paymentMethods.forEach(pm => pm.checked = pm.value === "Cartão");
   handlePaymentUIChange();
 });
-
-
-async function iniciarMonitoramentoStatus() {
-  const pedidoId = localStorage.getItem("pedidoId");
-  if (!pedidoId) return;
-
-  let ultimoStatus = null;
-
-  async function verificarStatus() {
-    try {
-      const res = await fetch(`http://localhost:3001/api/pedidos/${pedidoId}`);
-      if (!res.ok) return;
-      const pedido = await res.json();
-
-      if (pedido.status !== ultimoStatus) {
-        ultimoStatus = pedido.status;
-
-        if (pedido.status === "em preparo") {
-          mostrarAvisoCliente("🍳 Seu pedido está em preparo!");
-        } else if (pedido.status === "saiu pra entrega") {
-          mostrarAvisoCliente("🏍️ Seu pedido saiu para entrega!");
-        } else if (pedido.status === "finalizado") {
-          mostrarAvisoCliente("✅ Seu pedido foi finalizado! Bom apetite!");
-          localStorage.removeItem("pedidoId");
-        }
-      }
-    } catch (err) {
-      console.error("Erro ao verificar status do pedido:", err);
-    }
-  }
-
-  setInterval(verificarStatus, 5000); // Verifica a cada 5 segundos
-  verificarStatus();
-}
-
-function mostrarAvisoCliente(mensagem) {
-  // Você pode usar Tailwind + Toast bonito ou apenas um alert simples:
-  const aviso = document.createElement("div");
-  aviso.className = "fixed bottom-5 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-4 py-2 rounded shadow-lg animate-bounce";
-  aviso.innerText = mensagem;
-  document.body.appendChild(aviso);
-  setTimeout(() => aviso.remove(), 7000);
-}
