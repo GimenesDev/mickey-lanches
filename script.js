@@ -176,6 +176,52 @@ function handlePaymentUIChange() {
 }
 paymentMethods.forEach(pm => pm.addEventListener("change", handlePaymentUIChange));
 
+// =====================
+// Exibir chave Pix e copiar
+// =====================
+
+// container do Pix no HTML deve ter esse id: "pix-key-container"
+function showPixUI() {
+  // Define a chave Pix fixa
+  const chavePix = "hauankawai@gmail.com";
+  
+  // Adiciona o conteúdo no container
+  pixKeyContainer.innerHTML = `
+    <div class="p-3 border rounded-lg bg-green-50 text-center">
+      <p class="font-semibold mb-1 text-green-700">💳 Chave Pix:</p>
+      <p id="pix-key-text" class="text-green-900 text-sm select-all">${chavePix}</p>
+      <button id="copy-pix-btn" class="mt-2 bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm transition">
+        Copiar chave Pix
+      </button>
+      <p class="text-xs mt-2 text-gray-500">Após o pagamento, clique em <strong>"Confirmar pagamento"</strong></p>
+      <button id="confirm-pix-btn" class="mt-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition">
+        Confirmar pagamento
+      </button>
+    </div>
+  `;
+
+  // Ações dos botões
+  const copyBtn = document.getElementById("copy-pix-btn");
+  const confirmBtn = document.getElementById("confirm-pix-btn");
+
+  copyBtn.addEventListener("click", () => {
+    navigator.clipboard.writeText(chavePix);
+    Toastify({ text: "Chave Pix copiada!", duration: 2000, style: { background: "#10b981" } }).showToast();
+  });
+
+  confirmBtn.addEventListener("click", () => {
+    pixConfirmed = true;
+    Toastify({ text: "Pagamento Pix confirmado!", duration: 2500, style: { background: "#3b82f6" } }).showToast();
+  });
+}
+
+// Remove o Pix quando mudar o método de pagamento
+function invalidatePixRef() {
+  pixKeyContainer.innerHTML = "";
+  pixConfirmed = false;
+}
+
+
 // 🔢 Atualização em tempo real do valor do troco
 const trocoResultado = document.createElement("p");
 trocoResultado.id = "troco-resultado";
