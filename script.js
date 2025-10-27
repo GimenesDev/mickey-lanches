@@ -1,4 +1,3 @@
-
 // =====================
 // Variáveis principais
 // =====================
@@ -157,7 +156,6 @@ function removeItemCart(name) {
 // =====================
 // PIX UI / Confirmação de pagamento
 // =====================
-
 function handlePaymentUIChange() {
   const sel = getSelectedPaymentMethod();
   paymentWarn.classList.add("hidden");
@@ -166,51 +164,34 @@ function handlePaymentUIChange() {
     pixKeyContainer.classList.remove("hidden");
     changeContainer.classList.add("hidden");
     showPixUI();
-
   } else if (sel === "Dinheiro") {
     changeContainer.classList.remove("hidden");
     pixKeyContainer.classList.add("hidden");
-    changeContainer.classList.toggle("hidden", sel === "Dinheiro");
     invalidatePixRef();
-  } else { // Cartão
+  } else {
     pixKeyContainer.classList.add("hidden");
     changeContainer.classList.add("hidden");
     invalidatePixRef();
   }
 }
-
 paymentMethods.forEach(pm => pm.addEventListener("change", handlePaymentUIChange));
 
-function showPixUI() {
+// 🔢 Atualização em tempo real do valor do troco
+const trocoResultado = document.createElement("p");
+trocoResultado.id = "troco-resultado";
+trocoResultado.className = "text-sm text-gray-700 mt-1";
+changeContainer.appendChild(trocoResultado);
+
+changeForInput.addEventListener("input", () => {
   const total = cart.reduce((acc, i) => acc + i.price * i.quantity, 0);
-
-  if (total <= 0) {
-    pixQrContainer.innerHTML = `<p class="text-red-600">Adicione itens ao carrinho para gerar pagamento.</p>`;
-    pixKeyText.textContent = "--";
-    return;
+  const trocoPara = parseFloat(changeForInput.value);
+  if (!isNaN(trocoPara) && trocoPara > total) {
+    const troco = trocoPara - total;
+    trocoResultado.textContent = `Troco a devolver: ${currencyBRL(troco)}`;
+  } else {
+    trocoResultado.textContent = "";
   }
-
-  pixKeyText.textContent = RECEIVER_PIX_KEY;
-
-  pixQrContainer.innerHTML = `
-    <div class="text-center">
-      <p class="font-medium text-lg mb-2">Chave PIX:</p>
-      <p class="break-all select-all text-xl font-semibold mb-2">${RECEIVER_PIX_KEY}</p>
-      <p class="mt-2 mb-4 text-lg">Valor: <strong>${currencyBRL(total)}</strong></p>
-    </div>
-  `;
-
-  // Mostrar o botão de confirmação
-  confirmPixBtn.classList.remove("hidden");
-
-  // Remover mensagem antiga
-  const oldMsg = document.getElementById("pix-confirm-msg");
-  if (oldMsg) oldMsg.remove();
-
-  // Resetar status
-  pixConfirmed = false;
-  currentGeneratedPixRef = generatePaymentRef(total);
-}
+});
 
 // =====================
 // Confirmar pagamento Pix
@@ -220,18 +201,9 @@ confirmPixBtn.addEventListener("click", () => {
     Toastify({ text: "Carrinho vazio.", duration: 2500, style: { background: "#ef4444" } }).showToast();
     return;
   }
-
-  // Marcar Pix como confirmado
   pixConfirmed = true;
+  Toastify({ text: "Pagamento confirmado!", duration: 3000, style: { background: "#10b981" } }).showToast();
 
-  Toastify({
-    text: "Pagamento confirmado!",
-    duration: 3000,
-    style: { background: "#10b981" } // verde
-    // style: { background: "#10b981" }
-  }).showToast();
-
-  // Mostrar frase pedindo envio do comprovante
   let msg = document.getElementById("pix-confirm-msg");
   if (!msg) {
     msg = document.createElement("p");
@@ -239,11 +211,11 @@ confirmPixBtn.addEventListener("click", () => {
     msg.className = "mt-2 text-sm text-gray-700";
     confirmPixBtn.insertAdjacentElement("afterend", msg);
   }
-  msg.textContent = "Após finalizar o pedido, envie o comprovante em nosso WhatsApp para que possamos confirmar rapidamente.";
+  msg.textContent = "Após finalizar o pedido, envie o comprovante em nosso WhatsApp para confirmação.";
 });
 
 // =====================
-// Função para invalidar Pix (resetar)
+// Função para invalidar Pix
 // =====================
 function invalidatePixRef() {
   currentGeneratedPixRef = "";
@@ -256,20 +228,17 @@ function invalidatePixRef() {
   pixConfirmed = false;
 }
 
-
-
 // =====================
-// Header status
+// Header status (mantido igual ao seu original)
 // =====================
 function checkRestaurantOpen() {
   const data = new Date();
   const dia = data.getDay();
   const minAtual = data.getHours() * 60 + data.getMinutes();
-  const diasAbertos = [3, 5, 6, 2]; // quarta, sexta, sábado, terça?
+  const diasAbertos = [3, 5, 6, 2,0];
   if (!diasAbertos.includes(dia)) return false;
   return minAtual >= 16 * 60 && minAtual <= 23 * 60 + 59;
 }
-
 function updateHeaderStatus() {
   if (!headerStatus) return;
   const open = checkRestaurantOpen();
@@ -313,23 +282,21 @@ checkoutBtn.addEventListener("click", () => {
   const paymentMethod = getSelectedPaymentMethod();
   if (!paymentMethod) { paymentWarn.classList.remove("hidden"); return; }
 
-  // === VALIDAÇÃO DO TROCO ===
   const total = cart.reduce((acc, i) => acc + i.price * i.quantity, 0);
-
   if (paymentMethod === "Pix" && !pixConfirmed) {
     Toastify({ text: "Pague e confirme o Pix antes de finalizar.", duration: 3000, style: { background: "#f59e0b" } }).showToast();
     return;
   }
 
+  let trocoTexto = "";
   if (paymentMethod === "Dinheiro") {
-    const trocoValor = parseFloat(changeForInput.value);
-    if (isNaN(trocoValor) || trocoValor < total) {
-      Toastify({ text: "Troco inválido! O valor deve ser maior que o total do pedido.", duration: 3000, style: { background: "#ef4444" } }).showToast();
-      return;
+    const trocoPara = parseFloat(changeForInput.value);
+    if (!isNaN(trocoPara) && trocoPara > total) {
+      const troco = trocoPara - total;
+      trocoTexto = `💵 Valor: ${currencyBRL(total)}\n💰 Troco para: ${currencyBRL(trocoPara)}\n🔁 Troco a devolver: ${currencyBRL(troco)}\n`;
     }
   }
 
-  // Montar texto do pedido
   let textoPedido = `📦 *Novo Pedido*\n\n`;
   textoPedido += `👤 Cliente: ${customerNameInput.value.trim()}\n`;
   textoPedido += `📱 Telefone: ${customerPhoneInput.value.trim()}\n`;
@@ -337,26 +304,18 @@ checkoutBtn.addEventListener("click", () => {
   if (deliveryType === "entrega") {
     textoPedido += `🏠 Endereço: ${streetInput.value.trim()}, ${numberInput.value.trim()}, ${neighborhoodInput.value.trim()}\n`;
   }
-  textoPedido += `💰 Pagamento: ${paymentMethod}\n`;
-  if (paymentMethod === "Pix") {
-    textoPedido += `💵 Valor: ${currencyBRL(total)}\n`;
-  }
-  if (paymentMethod === "Dinheiro") {
-    textoPedido += `💵 Troco para: ${currencyBRL(parseFloat(changeForInput.value))}\n`;
-  }
+  textoPedido += `💳 Pagamento: ${paymentMethod}\n`;
+  if (paymentMethod === "Pix") textoPedido += `💵 Valor: ${currencyBRL(total)}\n`;
+  if (paymentMethod === "Dinheiro") textoPedido += trocoTexto;
   textoPedido += `📝 Observações: ${observationsInput.value.trim() || "Nenhuma"}\n\n`;
   textoPedido += `🛒 Itens:\n`;
-  cart.forEach(i => {
-    textoPedido += `- ${i.name} x${i.quantity} (${currencyBRL(i.price * i.quantity)})\n`;
-  });
+  cart.forEach(i => textoPedido += `- ${i.name} x${i.quantity} (${currencyBRL(i.price * i.quantity)})\n`);
   textoPedido += `\n💵 Total: ${currencyBRL(total)}`;
 
-  // Abrir WhatsApp
-  const whatsappNumber = "5544999038033"; // seu número
+  const whatsappNumber = "5544999038033";
   const whatsappURL = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(textoPedido)}`;
   window.open(whatsappURL, "_blank");
 
-  // Resetar carrinho
   cart = [];
   updateCartModal();
   streetInput.value = neighborhoodInput.value = numberInput.value = observationsInput.value = "";
