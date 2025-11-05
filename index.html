@@ -264,11 +264,18 @@
     <!-- fim do menu -->
 
     <div class="bg-black/50 w-full h-full fixed top-0 left-0 z-[99] items-center justify-center hidden" id="cart-modal">
-        <div class="bg-white p-5 rounded-md min-w-[90%] md:min-w-[600px] max-h-[90vh] overflow-y-auto">
-            <h2 class="text-center font-bold text-2xl mb-2">Meu Carrinho</h2>
-            <div id="cart-items" class="flex justify-between mb-2 flex-col"></div>
-            <p class="font-bold">Total: <span id="cart-total">0.00</span></p>
-            <p class="font-bold mt-4">Nome do Cliente:</p>
+    <div class="bg-white p-5 rounded-md min-w-[90%] md:min-w-[600px] max-h-[90vh] overflow-y-auto">
+        <h2 class="text-center font-bold text-2xl mb-2">Meu Carrinho</h2>
+        
+        <div id="cart-items" class="flex justify-between mb-2 flex-col">
+            </div>
+        
+        <div class="flex justify-between items-center py-3 border-t-2 border-gray-300 mb-4">
+            <span class="text-xl font-bold">Total:</span>
+            <span id="cart-total" class="text-xl font-bold text-red-600">R$ 0,00</span>
+        </div>
+        
+        <p class="font-bold mt-4">Nome do Cliente:</p>
             <input type="text" id="customer-name" placeholder="Ex: João da Silva" class="w-full border-2 p-1 rounded my-1" />
             <p id="name-warn" class="text-red-500 hidden">Digite o nome do cliente!</p>
             <p class="font-bold mt-2">Telefone (WhatsApp):</p>
@@ -323,16 +330,54 @@
         </div>
     </div>
 
-    <footer class="w-full bg-red-500 py-3 fixed bottom-0 z-40 flex items-center justify-center">
-        <button class="flex items-center gap-2 text-white font-bold" id="cart-btn">
-            (<span id="cart-count">0</span>) Veja meu carrinho <i class="fa fa-cart-plus text-lg text-white"></i>
+ 
+
+<div id="status-modal" class="fixed inset-0 bg-black bg-opacity-75 z-50 justify-center items-center hidden">
+    <div class="bg-white p-8 rounded-lg shadow-2xl w-full max-w-md m-4">
+        <div class="flex justify-between items-center mb-6 border-b pb-4">
+            <h2 class="text-2xl font-bold text-gray-800">Status do Pedido <span id="current-order-id">#000</span></h2>
+            <button id="close-status-btn" class="text-gray-500 hover:text-gray-900 transition text-3xl">&times;</button>
+        </div>
+        
+        <div id="status-display-container" class="flex items-center justify-center p-3 rounded-xl shadow-inner bg-gray-100 mb-6">
+            <div id="status-icon" class="mr-4">
+                 <i class="fa fa-clock text-5xl text-gray-500"></i>
+            </div>
+            <p id="current-status-text" class="text-2xl font-extrabold text-gray-500">Pendente de Confirmação</p>
+        </div>
+
+        <div class="space-y-4">
+            <p id="step-pendente" class="status-step text-gray-400 font-semibold flex items-center"><i class="fa fa-clock mr-2"></i> Pedido Recebido</p>
+            <p id="step-preparo" class="status-step text-gray-400 font-semibold flex items-center"><i class="fa fa-cutlery mr-2"></i> Em Preparo</p>
+            <p id="step-pronto" class="status-step text-gray-400 font-semibold flex items-center"><i class="fa fa-shopping-bag mr-2"></i> Pronto para Retirada</p>
+            <p id="step-a-caminho" class="status-step text-gray-400 font-semibold flex items-center"><i class="fa fa-motorcycle mr-2"></i> Saiu para Entrega</p>
+            <p id="step-entregue" class="status-step text-gray-400 font-semibold flex items-center"><i class="fa fa-check-circle mr-2"></i> Pedido Finalizado</p>
+        </div>
+    </div>
+</div>
+        
+        <button id="close-status-btn" class="mt-8 w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 rounded transition">
+            Voltar ao Menu Principal
         </button>
-    </footer>
+    </div>
+</div>
+
+<footer class="w-full bg-red-500 py-3 fixed bottom-0 z-40 flex items-center justify-center gap-8">
+    
+    <button class="flex items-center gap-2 text-white font-bold" id="cart-btn">
+        (<span id="cart-count">0</span>) Carrinho <i class="fa fa-cart-plus text-lg text-white"></i>
+    </button>
+
+<button id="status-btn" class="hidden w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl transition duration-300 items-center justify-center shadow-lg mt-2">
+    <i class="fa fa-search mr-2"></i>
+    Acompanhar Pedido <span id="status-footer-id" class="ml-1 font-extrabold">#000</span>
+</button>
+</footer>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="script.js"></script>
 </body>
 </html>

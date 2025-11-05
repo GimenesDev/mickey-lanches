@@ -2,7 +2,7 @@
   "name": "projeto-harburgueria",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
     "dev": "npx tailwindcss -i ./style/style.css -o ./style/output.css --watch"
   },

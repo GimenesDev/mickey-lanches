@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Pedidos | Lanchonete</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <link rel="stylesheet" href="style/output.css">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <style>
+        .pedido-card { transition: all 0.3s ease; }
+        .novo-pedido { animation: pulse-border 1.5s infinite alternate; border: 3px solid #f59e0b; }
+        @keyframes pulse-border {
+            0% { border-color: #f59e0b; }
+            100% { border-color: #f87171; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-6">
+
+    <header class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-800">🍔 Painel de Gerenciamento de Pedidos</h1>
+        <p class="text-gray-600">Pedidos em tempo real.</p>
+    </header>
+
+    <div class="bg-white p-4 rounded-lg shadow-md mb-6 flex gap-4 items-center">
+        <h2 class="text-xl font-semibold text-gray-700">Caixa:</h2>
+        <button id="abrir-caixa-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition">
+            Abrir Caixa
+        </button>
+        <button id="fechar-caixa-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded transition">
+            Fechar Caixa
+        </button>
+        <button id="imprimir-relatorio-btn" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded transition">
+            Imprimir Relatório
+        </button>
+    </div>
+
+    <div id="pedidos-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <p id="loading-message" class="text-gray-500">Carregando pedidos...</p>
+    </div>
+
+    <script>
+    // ===================================
+    // Configurações e Inicialização
+    // ===================================
+    const API_URL = 'http://localhost:3333/api/pedidos';
+    const SOCKET_URL = 'http://localhost:3333';
+    const pedidosContainer = document.getElementById('pedidos-container');
+    
+    // Inicializa a conexão Socket.io
+    const socket = io(SOCKET_URL);
+
+    // ===================================
+    // Funções de Renderização
+    // ===================================
+
+    // Helper para mapear status para classes Tailwind
+    function getStatusColor(status) {
+        switch (status) {
+            case 'Pendente': return 'bg-yellow-100 text-yellow-800';
+            case 'Em Preparo': return 'bg-blue-100 text-blue-800';
+            case 'Saiu para Entrega': return 'bg-teal-100 text-teal-800'; // RE-APLICADO: NOVO STATUS
+            case 'Pronto': return 'bg-purple-100 text-purple-800';
+            case 'Entregue': return 'bg-green-100 text-green-800';
+            case 'Cancelado': return 'bg-red-100 text-red-800';
+            default: return 'bg-gray-100 text-gray-800';
+        }
+    }
+
+    function createPedidoCard(pedido) {
+        const card = document.createElement('div');
+        card.id = `pedido-${pedido.id}`;
+        card.className = `pedido-card bg-white p-5 rounded-lg shadow-xl border-t-4 ${pedido.status === 'Pendente' ? 'border-red-500' : 'border-gray-300'}`;
+        
+        const total = parseFloat(pedido.valor_total).toLocaleString('pt-br', { style: 'currency', currency: 'BRL' });
+        const tipoEntrega = pedido.tipo_entrega === 'entrega' ? 'Entrega' : 'Retirada';
+        const statusColorClass = getStatusColor(pedido.status);
+        const dataPedido = new Date(pedido.createdAt).toLocaleTimeString('pt-BR');
+
+        // RE-APLICADO: Lógica para o botão de "Pronto" (Retirada) ou "Saiu p/ Entrega" (Entrega)
+        const isDelivery = pedido.tipo_entrega === 'entrega';
+        const readyButtonStatus = isDelivery ? 'Saiu para Entrega' : 'Pronto';
+        const readyButtonLabel = isDelivery ? 'Saiu p/ Entrega' : 'Pronto';
+
+        card.innerHTML = `
+            <div class="flex justify-between items-start mb-4">
+                <h3 class="text-2xl font-bold text-gray-800">#${pedido.id}</h3>
+                <span class="px-3 py-1 text-sm font-semibold rounded-full ${statusColorClass}">${pedido.status}</span>
+            </div>
+            
+            <p class="mb-1 text-gray-700">👤 **${pedido.cliente_nome}** (${pedido.cliente_telefone})</p>
+            <p class="text-sm mb-2 text-gray-600">⏰ ${dataPedido}</p>
+            
+            <p class="text-lg font-bold text-red-600 mt-2">TOTAL: ${total}</p>
+            <p class="text-sm mb-3">Tipo: ${tipoEntrega} | Pagamento: ${pedido.forma_pagamento}</p>
+            
+            <div class="mb-3 p-3 bg-gray-50 rounded">
+                <p class="font-semibold mb-1">Itens:</p>
+                <ul class="list-disc text-sm space-y-0.5 ml-4">
+                    ${pedido.itens.map(i => `<li>${i.quantidade}x ${i.nome} (${(i.preco_unitario || i.price).toLocaleString('pt-br', { style: 'currency', currency: 'BRL' })})</li>`).join('')}
+                </ul>
+            </div>
+
+            <div class="mt-4 flex flex-wrap gap-2">
+                <button data-id="${pedido.id}" data-status="Em Preparo" class="status-btn bg-blue-500 hover:bg-blue-600 text-white text-sm py-1 px-3 rounded">Preparar</button>
+                <button data-id="${pedido.id}" data-status="${readyButtonStatus}" class="status-btn bg-purple-500 hover:bg-purple-600 text-white text-sm py-1 px-3 rounded">${readyButtonLabel}</button>
+                
+                <button data-id="${pedido.id}" data-status="Entregue" class="status-btn bg-green-500 hover:bg-green-600 text-white text-sm py-1 px-3 rounded">Finalizar</button>
+                <button data-id="${pedido.id}" data-status="Cancelado" class="status-btn bg-red-500 hover:bg-red-600 text-white text-sm py-1 px-3 rounded">Cancelar</button>
+                
+                <button data-id="${pedido.id}" class="print-btn bg-gray-500 hover:bg-gray-600 text-white text-sm py-1 px-3 rounded">Imprimir</button>
+            </div>
+        `;
+        return card;
+    }
+
+    function updateCardStatus(id, newStatus) {
+        const card = document.getElementById(`pedido-${id}`);
+        if (!card) return;
+        
+        // Atualiza a cor do status
+        const statusSpan = card.querySelector('span:nth-child(2)'); // Onde o status está
+        statusSpan.className = `px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(newStatus)}`;
+        statusSpan.textContent = newStatus;
+
+        // Remove a animação de novo pedido
+        card.classList.remove('novo-pedido');
+
+        // Move o pedido para o final quando for finalizado ou cancelado, para limpar a fila
+        if (newStatus === 'Entregue' || newStatus === 'Cancelado') {
+            setTimeout(() => card.remove(), 500); // Remove com um pequeno delay
+        }
+    }
+
+    // ===================================
+    // Lógica de Carregamento da API
+    // ===================================
+
+    async function loadPedidos() {
+        // Verifica se a mensagem de loading ainda está lá
+        const loadingMessageEl = document.getElementById('loading-message');
+        if (loadingMessageEl) {
+            loadingMessageEl.textContent = 'Carregando pedidos...';
+        }
+        
+        try {
+            const response = await fetch(API_URL);
+            if (!response.ok) throw new Error('Falha ao carregar pedidos.');
+            
+            const pedidos = await response.json();
+            pedidosContainer.innerHTML = ''; // Limpa o container
+            if (loadingMessageEl) loadingMessageEl.remove();
+
+            // Filtra e exibe apenas pedidos Abertos (Pendente, Preparo, Pronto, Saiu para Entrega)
+            const pedidosAbertos = pedidos.filter(p => !['Entregue', 'Cancelado'].includes(p.status));
+
+            if (pedidosAbertos.length === 0) {
+                 pedidosContainer.innerHTML = '<p class="text-gray-500">Nenhum pedido pendente no momento.</p>';
+                 return;
+            }
+
+            pedidosAbertos.forEach(pedido => {
+                pedidosContainer.appendChild(createPedidoCard(pedido));
+            });
+        } catch (error) {
+            console.error('Erro ao carregar pedidos:', error);
+            pedidosContainer.innerHTML = `<p class="text-red-500">Erro ao carregar pedidos: ${error.message}</p>`;
+        }
+    }
+
+    // ===================================
+    // Lógica de Ações (Mudar Status e Imprimir)
+    // ===================================
+
+    pedidosContainer.addEventListener('click', async (e) => {
+        const btn = e.target.closest('.status-btn, .print-btn'); // Ouve ambos os botões
+        if (!btn) return;
+
+        const pedidoId = btn.getAttribute('data-id');
+
+        if (btn.classList.contains('status-btn')) {
+            // Lógica de MUDAR STATUS
+            const newStatus = btn.getAttribute('data-status');
+            try {
+                const response = await fetch(`${API_URL}/${pedidoId}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+
+                if (response.ok) {
+                    // O servidor enviará a notificação via Socket.io para atualizar a tela
+                    Toastify({ text: `Status do Pedido #${pedidoId} alterado para ${newStatus}!`, duration: 3000, style: { background: "#4caf50" } }).showToast();
+                } else {
+                    const errorData = await response.json();
+                    Toastify({ text: `Erro ao mudar status: ${errorData.error || 'Erro desconhecido'}`, duration: 5000, style: { background: "#ef4444" } }).showToast();
+                }
+            } catch (error) {
+                console.error('Erro de conexão ao tentar atualizar status:', error);
+                Toastify({ text: "Erro de conexão ao tentar atualizar status.", duration: 5000, style: { background: "#ef4444" } }).showToast();
+            }
+        } else if (btn.classList.contains('print-btn')) {
+            // Lógica de IMPRESSÃO DO PEDIDO 
+            try {
+                // 1. Busca os dados completos do pedido
+                const response = await fetch(`${API_URL}/${pedidoId}`);
+                if (!response.ok) throw new Error('Falha ao buscar detalhes do pedido.');
+                
+                const pedido = await response.json();
+
+                // 2. Formata o conteúdo do relatório
+                const relatorio = formatarRelatorioPedido(pedido);
+
+                // 3. Oferece as opções de impressão/download (como no fechamento de caixa)
+                const opcao = confirm(`Deseja imprimir o Pedido #${pedidoId} (OK) ou baixar como HTML (Cancelar - simulando PDF)?`);
+                if (opcao) {
+                    imprimirRelatorio(relatorio);
+                } else {
+                    baixarRelatorioPDF(relatorio, `Pedido_${pedido.id}_${new Date().getTime()}`);
+                }
+                
+            } catch (error) {
+                console.error('Erro ao processar impressão:', error);
+                Toastify({ text: `Erro ao imprimir Pedido #${pedidoId}.`, duration: 5000, style: { background: "#ef4444" } }).showToast();
+            }
+        }
+    });
+    
+    // ===================================
+    // Lógica de Ações (Caixa)
+    // ===================================
+
+    // NOVO: Listener do botão Imprimir Relatório
+    document.getElementById('imprimir-relatorio-btn').addEventListener('click', printCurrentCaixaReport);
+
+    async function printCurrentCaixaReport() {
+        try {
+            // Rota para obter o relatório SEM FECHAR o caixa
+            const response = await fetch('http://localhost:3333/api/caixa/relatorio');
+            const result = await response.json();
+
+            if (response.ok) {
+                const resumo = result.resumo;
+                const statusCaixa = result.status;
+                
+                if (statusCaixa === 'Fechado') {
+                    Toastify({ text: "O caixa está fechado. Imprimindo o último relatório...", duration: 3000, style: { background: "#3b82f6" } }).showToast();
+                } else {
+                    Toastify({ text: "Caixa Aberto. Imprimindo relatório do dia atual...", duration: 3000, style: { background: "#10b981" } }).showToast();
+                }
+
+                // Geração do relatório com a função formatarRelatorioPDF (já existente)
+                const relatorio = formatarRelatorioPDF(resumo);
+
+                const opcao = confirm("Deseja imprimir o relatório (OK) ou baixar como HTML (Cancelar - simulando PDF)?");
+                if (opcao) {
+                    imprimirRelatorio(relatorio);
+                } else {
+                    const filenameBase = resumo.data_fechamento || new Date().toISOString();
+                    baixarRelatorioPDF(relatorio, filenameBase);
+                }
+
+            } else {
+                Toastify({ text: result.error, duration: 5000, style: { background: "#ef4444" } }).showToast();
+            }
+        } catch (error) {
+            console.error('Erro ao tentar imprimir relatório avulso:', error);
+            Toastify({ text: "Falha na conexão ao buscar o relatório de caixa.", duration: 5000, style: { background: "#ef4444" } }).showToast();
+        }
+    }
+
+    document.getElementById('abrir-caixa-btn').addEventListener('click', async () => {
+        // CORRIGIDO: O prompt já sugere 0, e a lógica garante que valor seja 0 se for nulo
+        const valorInicial = prompt("Informe o valor inicial do caixa (deixe 0 para começar com R$ 0,00):");
+        if (valorInicial !== null) {
+            const valor = parseFloat(valorInicial) || 0;
+            try {
+                // APONTA PARA A NOVA ROTA DEDICADA /abrir
+                const response = await fetch('http://localhost:3333/api/caixa/abrir', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ valor_inicial: valor })
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    Toastify({ text: result.message, duration: 3000, style: { background: "#4caf50" } }).showToast();
+                    updateCaixaUI(true);
+                    loadPedidos();
+                } else {
+                    Toastify({ text: result.error, duration: 5000, style: { background: "#ef4444" } }).showToast();
+                }
+            } catch (error) {
+                Toastify({ text: "Falha ao abrir o caixa. Servidor inacessível.", duration: 5000, style: { background: "#ef4444" } }).showToast();
+            }
+        }
+    });
+    
+    document.getElementById('fechar-caixa-btn').addEventListener('click', async () => {
+        if (confirm("Tem certeza que deseja fechar o caixa do dia e gerar o relatório?")) {
+             try {
+                // APONTA PARA A NOVA ROTA DEDICADA /fechar
+                const response = await fetch('http://localhost:3333/api/caixa/fechar', { method: 'POST' });
+                const result = await response.json();
+                
+                if (response.ok) {
+                    Toastify({ text: result.message, duration: 3000, style: { background: "#f59e0b" } }).showToast();
+                    updateCaixaUI(false);
+                    loadPedidos();
+
+                    // Lógica de Impressão/Download do Relatório
+                    const resumo = result.resumo;
+                    const relatorio = formatarRelatorioPDF(resumo);
+
+                    const opcao = confirm("Deseja imprimir o relatório (OK) ou baixar como HTML (Cancelar - simulando PDF)?");
+                    if (opcao) {
+                        imprimirRelatorio(relatorio);
+                    } else {
+                        baixarRelatorioPDF(relatorio, resumo.data_fechamento);
+                    }
+                    
+                } else {
+                    Toastify({ text: result.error, duration: 5000, style: { background: "#ef4444" } }).showToast();
+                }
+            } catch (error) {
+                Toastify({ text: "Falha ao fechar o caixa.", duration: 5000, style: { background: "#ef4444" } }).showToast();
+            }
+        }
+    });
+
+    // ===================================
+    // Funções utilitárias
+    // ===================================
+    function currencyBRL(value) {
+        // Garante que o valor é um número antes de formatar
+        const num = parseFloat(value);
+        return isNaN(num) ? 'R$ 0,00' : num.toLocaleString('pt-br', { style: 'currency', currency: 'BRL' });
+    }
+
+    // ===================================
+    // Funções de Relatório
+    // ===================================
+
+    // Formata os dados de um Pedido Individual para impressão/PDF
+    function formatarRelatorioPedido(pedido) {
+        const dataPedido = new Date(pedido.createdAt).toLocaleString('pt-BR');
+        const tipoEntrega = pedido.tipo_entrega === 'entrega' ? 'Entrega' : 'Retirada';
+        let trocoTexto = '';
+        
+        const valorTrocoPara = parseFloat(pedido.troco_para);
+        const valorTotal = parseFloat(pedido.valor_total);
+
+        if (pedido.forma_pagamento === 'Dinheiro' && !isNaN(valorTrocoPara) && valorTrocoPara > valorTotal) {
+            const troco = valorTrocoPara - valorTotal;
+            trocoTexto = `<p><strong>Troco para:</strong> ${currencyBRL(valorTrocoPara)} (Troco: ${currencyBRL(troco)})</p>`;
+        } else if (pedido.forma_pagamento === 'Dinheiro') {
+             trocoTexto = `<p><strong>Troco:</strong> Não precisa de troco.</p>`;
+        }
+
+
+        return `
+            <div style="font-family: Arial, sans-serif; padding: 20px; font-size: 14px;">
+                <h1 style="text-align: center; color: #333;">Mickey Lanches - Pedido #${pedido.id}</h1>
+                <p style="text-align: center; border-bottom: 2px solid #ccc; padding-bottom: 10px;">${dataPedido} | Status: ${pedido.status}</p>
+                
+                <h2 style="color: #555; margin-top: 20px; border-bottom: 1px solid #eee;">Detalhes do Cliente</h2>
+                <p><strong>Nome:</strong> ${pedido.cliente_nome}</p>
+                <p><strong>Telefone:</strong> ${pedido.cliente_telefone}</p>
+                <p><strong>Observações:</strong> ${pedido.observacoes || 'Nenhuma'}</p>
+                
+                <h2 style="color: #555; margin-top: 20px; border-bottom: 1px solid #eee;">Entrega / Pagamento</h2>
+                <p><strong>Tipo:</strong> ${tipoEntrega}</p>
+                ${tipoEntrega === 'Entrega' ? `<p><strong>Endereço:</strong> ${pedido.endereco_rua}, ${pedido.endereco_numero} (${pedido.endereco_bairro})</p>` : ''}
+                <p><strong>Pagamento:</strong> ${pedido.forma_pagamento}</p>
+                ${trocoTexto}
+
+                <h2 style="color: #555; margin-top: 20px; border-bottom: 1px solid #eee;">Itens do Pedido</h2>
+                <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                    <thead>
+                        <tr style="background-color: #f0f0f0;">
+                            <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Item</th>
+                            <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">Qtd</th>
+                            <th style="padding: 8px; border: 1px solid #ddd; text-align: right;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${pedido.itens.map(item => `
+                            <tr>
+                                <td style="padding: 8px; border: 1px solid #ddd;">${item.nome}</td>
+                                <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${item.quantidade}</td>
+                                <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">${currencyBRL(item.quantidade * (item.preco_unitario || item.price))}</td>
+                            </tr>
+                        `).join('')}
+                        <tr style="background-color: #e6e6e6;">
+                            <td colspan="2" style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">TOTAL DO PEDIDO</td>
+                            <td style="padding: 10px; border: 1px solid #ddd; text-align: right; font-weight: bold;">${currencyBRL(pedido.valor_total)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+    
+    // Formata o resumo do caixa para um HTML limpo (para impressão ou PDF)
+    function formatarRelatorioPDF(resumo) {
+        // Verifica se data_fechamento é nula ou vazia (caixa aberto)
+        const dataFechamentoText = resumo.data_fechamento ? new Date(resumo.data_fechamento).toLocaleString('pt-BR') : 'Caixa Aberto (Relatório Parcial)';
+        const dataAberturaText = new Date(resumo.data_abertura).toLocaleString('pt-BR');
+
+
+        return `
+            <div style="font-family: Arial, sans-serif; padding: 20px;">
+                <h1 style="text-align: center; color: #333;">Relatório de Caixa</h1>
+                <p style="text-align: center; border-bottom: 2px solid #ccc; padding-bottom: 10px;">Fechamento: ${dataFechamentoText}</p>
+                
+                <h2 style="color: #555; margin-top: 20px;">Detalhes da Sessão</h2>
+                <p><strong>Aberto em:</strong> ${dataAberturaText}</p>
+                <p><strong>Fechado em:</strong> ${resumo.data_fechamento ? new Date(resumo.data_fechamento).toLocaleTimeString('pt-BR') : 'Em andamento'}</p>
+                
+                <h2 style="color: #555; margin-top: 20px;">Resumo Financeiro</h2>
+                <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                    <tr><td style="padding: 8px; border: 1px solid #ddd;">Valor Inicial (Fundo)</td><td style="padding: 8px; border: 1px solid #ddd; text-align: right;">${currencyBRL(resumo.valor_inicial)}</td></tr>
+                    <tr><td style="padding: 8px; border: 1px solid #ddd;">Total de Pedidos (Finalizados)</td><td style="padding: 8px; border: 1px solid #ddd; text-align: right;">${currencyBRL(resumo.total_pedidos)}</td></tr>
+                    <tr style="background-color: #f0f0f0;"><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">TOTAL ESPERADO EM DINHEIRO NO CAIXA</td><td style="padding: 8px; border: 1px solid #ddd; text-align: right; font-weight: bold;">${currencyBRL(resumo.valor_final)}</td></tr>
+                </table>
+
+                <h2 style="color: #555; margin-top: 20px;">Detalhe por Forma de Pagamento (Vendas Totais)</h2>
+                <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                    <tr><td style="padding: 8px; border: 1px solid #ddd;">PIX</td><td style="padding: 8px; border: 1px solid #ddd; text-align: right;">${currencyBRL(resumo.total_pix)}</td></tr>
+                    <tr><td style="padding: 8px; border: 1px solid #ddd;">Dinheiro (Vendas)</td><td style="padding: 8px; border: 1px solid #ddd; text-align: right;">${currencyBRL(resumo.total_dinheiro)}</td></tr>
+                    <tr><td style="padding: 8px; border: 1px solid #ddd;">Cartão</td><td style="padding: 8px; border: 1px solid #ddd; text-align: right;">${currencyBRL(resumo.total_cartao)}</td></tr>
+                </table>
+            </div>
+        `;
+    }
+
+    // Função para simular a impressão
+    function imprimirRelatorio(htmlContent) {
+        const printWindow = window.open('', '', 'height=600,width=800');
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
+        printWindow.print();
+    }
+
+    // Função para download simples (não é PDF real, é HTML salvo como HTML/PDF)
+    function baixarRelatorioPDF(htmlContent, filenameBase) {
+        // Usa a data atual ou a base do nome do relatório
+        const filename = filenameBase.includes('Relatorio_Caixa') ? 
+                             `Relatorio_Caixa_${new Date(filenameBase).toLocaleDateString().replace(/\//g, '-')}` : 
+                             `Relatorio_Caixa_${new Date().toISOString()}`;
+                             
+        const blob = new Blob([htmlContent], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${filename}.html`; // Mantenho como .html para ser mais fiel
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        Toastify({ text: "Relatório salvo como HTML (simulando PDF)!", duration: 3000 }).showToast();
+        
+        // *Nota: Para PDF real, você precisaria de uma biblioteca como jsPDF (no frontend)
+        // ou um serviço de geração de PDF (no backend), o que é mais complexo.*
+    }
+
+
+    // ===================================
+    // Lógica de UI do Caixa
+    // ===================================
+    function updateCaixaUI(isAberto) {
+        const abrirBtn = document.getElementById('abrir-caixa-btn');
+        const fecharBtn = document.getElementById('fechar-caixa-btn');
+        const relatorioBtn = document.getElementById('imprimir-relatorio-btn');
+
+        if (isAberto) {
+            abrirBtn.disabled = true;
+            abrirBtn.textContent = 'CAIXA ABERTO';
+            abrirBtn.classList.remove('bg-green-500', 'hover:bg-green-600');
+            abrirBtn.classList.add('bg-gray-400');
+            fecharBtn.disabled = false;
+            fecharBtn.classList.remove('bg-gray-400');
+            fecharBtn.classList.add('bg-red-500', 'hover:bg-red-600');
+            relatorioBtn.disabled = false;
+            relatorioBtn.classList.remove('bg-gray-400');
+            relatorioBtn.classList.add('bg-indigo-500', 'hover:bg-indigo-600');
+        } else {
+            abrirBtn.disabled = false;
+            abrirBtn.textContent = 'ABRIR CAIXA';
+            abrirBtn.classList.remove('bg-gray-400');
+            abrirBtn.classList.add('bg-green-500', 'hover:bg-green-600');
+            fecharBtn.disabled = true;
+            fecharBtn.classList.remove('bg-red-500', 'hover:bg-red-600');
+            fecharBtn.classList.add('bg-gray-400');
+            relatorioBtn.disabled = false;
+            relatorioBtn.classList.remove('bg-gray-400');
+            relatorioBtn.classList.add('bg-indigo-500', 'hover:bg-indigo-600');
+        }
+    }
+    
+    // Verifica o status do caixa ao carregar a página
+    async function checkCaixaStatus() {
+        try {
+            const response = await fetch('http://localhost:3333/api/caixa/status');
+            const result = await response.json();
+            updateCaixaUI(result.status === 'Aberto');
+        } catch (error) {
+            console.error('Falha ao verificar status do caixa:', error);
+            Toastify({ text: "Servidor offline ou falha de conexão.", duration: 5000, style: { background: "#ef4444" } }).showToast();
+        }
+    }
+
+    // Altera a chamada principal para verificar o caixa primeiro
+    async function initializePanel() {
+        await checkCaixaStatus();
+        await loadPedidos();
+    }
+
+
+    // ===================================
+    // Socket.io (Tempo Real)
+    // ===================================
+
+    socket.on('connect', () => {
+        console.log('Conectado ao servidor Socket.io');
+    });
+
+    // 1. Ouve novos pedidos
+    socket.on('novo_pedido', (pedido) => {
+        // Verifica se o caixa está aberto antes de adicionar o card
+        const abrirBtn = document.getElementById('abrir-caixa-btn');
+        if (abrirBtn.textContent !== 'CAIXA ABERTO') {
+             Toastify({ text: `🔔 NOVO PEDIDO #${pedido.id}, mas o Caixa está FECHADO!`, duration: 10000, style: { background: "linear-gradient(to right, #ef4444, #f87171)" } }).showToast();
+             return; // Não exibe o pedido se o caixa estiver fechado
+        }
+
+        const novoCard = createPedidoCard(pedido);
+        novoCard.classList.add('novo-pedido'); // Adiciona a animação
+        pedidosContainer.prepend(novoCard); // Coloca no topo
+        
+        Toastify({ 
+            text: `🔔 NOVO PEDIDO #${pedido.id}: ${pedido.cliente_nome} (${parseFloat(pedido.valor_total).toLocaleString('pt-br', { style: 'currency', currency: 'BRL' })})`, 
+            duration: 10000, 
+            style: { background: "linear-gradient(to right, #f59e0b, #facc15)" } 
+        }).showToast();
+    });
+
+    // 2. Ouve atualização de status (de outro painel ou da própria máquina)
+    socket.on('status_atualizado', ({ id, status }) => {
+        updateCardStatus(id, status);
+        // CORRIGIDO: Adiciona Toastify para notificação em tempo real
+        if (status !== 'Entregue' && status !== 'Cancelado') {
+            Toastify({ 
+                text: `Pedido #${id}: Status atualizado para ${status}!`, 
+                duration: 3000, 
+                style: { background: "#4caf50" } 
+            }).showToast();
+        }
+    });
+
+    // Inicia o carregamento dos pedidos quando a página carrega
+    initializePanel();
+</script>
+</body>
+</html>
