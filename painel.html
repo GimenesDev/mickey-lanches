@@ -70,6 +70,8 @@
     }
 
     function createPedidoCard(pedido) {
+    const pedidoNumero = pedido.numero_sequencial || pedido.id; // Use o novo campo, se existir
+
         const card = document.createElement('div');
         card.id = `pedido-${pedido.id}`;
         card.className = `pedido-card bg-white p-5 rounded-lg shadow-xl border-t-4 ${pedido.status === 'Pendente' ? 'border-red-500' : 'border-gray-300'}`;

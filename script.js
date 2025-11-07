@@ -15,6 +15,12 @@ const cartCounter = document.getElementById("cart-count");
 const addressWarn = document.getElementById("address-warn");
 const trocoResumo = document.getElementById("troco-resumo");
 
+// NOVO: Adicione as variáveis do Modal de Status e o ID do pedido
+const statusFooterId = document.getElementById("status-footer-id");
+
+// Variável para armazenar o ID do pedido atual (para escopo do Socket.IO)
+let currentOrderStatus = localStorage.getItem('currentOrderStatus') || null;
+
 
 // Cliente
 const customerNameInput = document.getElementById("customer-name");
@@ -31,6 +37,7 @@ const pixKeyText = document.getElementById("pix-key");
 const copyPixBtn = document.getElementById("copy-pix-btn"); 
 const confirmPixBtn = document.getElementById("confirm-pix-btn"); 
 const changeForInput = document.getElementById("change-for");
+
 
 // Entrega
 const deliveryTypeRadios = document.getElementsByName("delivery-type");
@@ -57,6 +64,8 @@ const currentOrderIdEl = document.getElementById("current-order-id");
 const statusFooterIdEl = document.getElementById("status-footer-id");
 const currentStatusTextEl = document.getElementById("current-status-text");
 const statusIconEl = document.getElementById("status-icon");
+
+
 
 let cart = [];
 let pixConfirmed = false;
@@ -127,7 +136,7 @@ function checkRestaurantOpen() {
   const data = new Date();
   const dia = data.getDay();
   const minAtual = data.getHours() * 60 + data.getMinutes();
-  const diasAbertos = [3, 5, 6, 2];
+  const diasAbertos = [3, 5, 6, 2, 4];
   if (!diasAbertos.includes(dia)) return false;
   return minAtual >= 16 * 60 && minAtual <= 23 * 60 + 59;
 }
@@ -361,77 +370,223 @@ if (copyPixBtn) {
 }
 
 // =====================
-// RASTREAMENTO DO PEDIDO (STATUS MODAL) - LÓGICA DE ABERTURA
+// Funções Auxiliares (updateOrderStatusUI e toggleStatusButton)
 // =====================
 
-// No seu script.js
+// =====================
+// Funções de Rastreamento (CORRIGIDAS)
+// =====================
 
-function handleOrderSuccess(orderId, deliveryType) {
-    currentOrderId = orderId;
-    currentDeliveryType = deliveryType;
-    
-    // 1. Mostrar o botão de rastreamento no footer (Como fallback/referência)
-    if (statusBtn) {
+/**
+ * 🚀 Controla a visibilidade do botão de rastreamento no footer e limpa o estado.
+ */
+function toggleStatusButton(deliveryType) {
+    currentDeliveryType = deliveryType || currentDeliveryType; // Atualiza o tipo de entrega
+
+    // Verifica se existe um pedido ativo E se o status ainda não foi concluído
+    if (currentOrderId && currentOrderStatus !== 'Entregue' && currentOrderStatus !== 'Cancelado') {
+        // CORREÇÃO CRÍTICA: Remove a classe 'hidden' do Tailwind
         statusBtn.classList.remove('hidden');
-        statusBtn.classList.add('flex');
-        statusFooterIdEl.textContent = `#${orderId}`;
+        statusFooterIdEl.textContent = `#${currentOrderId}`;
+        
+        // Garante que o estado visual da UI de status esteja correto (para recarga)
+        updateOrderStatusUI(currentOrderStatus, currentDeliveryType); 
+    } else {
+        // Limpa o estado e esconde o botão
+        statusBtn.classList.add('hidden');
+        localStorage.removeItem('currentOrderId');
+        localStorage.removeItem('currentOrderStatus');
+        currentOrderId = null;
+        currentOrderStatus = null;
+    }
+}
+
+
+/**
+ * 🎨 Função para atualizar a interface visual do modal de status.
+ * @param {string} status - Novo status do pedido.
+ * @param {string} deliveryType - 'entrega' ou 'retirada' (necessário para o passo 'Saiu para Entrega').
+ */
+function updateOrderStatusUI(status, deliveryType) {
+    const mainStatusText = document.getElementById('main-status-text');
+    
+    // 1. Atualiza o texto principal do modal
+    if (mainStatusText) {
+        mainStatusText.textContent = `Status Atual: ${status}`;
     }
 
-    // 2. Atualizar o status inicial (deve ser 'Pendente') ANTES de abrir o modal
-    updateOrderStatusUI('Pendente');
+    // 2. Lida com a visibilidade de passos específicos ('Saiu para Entrega' / 'step-entrega')
+    const stepACaminho = document.getElementById('step-entrega'); // Usando ID do seu index.html
+    if (stepACaminho) {
+        if (deliveryType === 'retirada' || deliveryType === 'Retirada') {
+            stepACaminho.style.display = 'none'; 
+        } else {
+            stepACaminho.style.display = 'flex'; // Use 'flex' ou 'block'
+        }
+    }
 
-    // 3. Limpar o carrinho e fechar o modal de checkout
+
+    // 3. Resetar todos os passos para o estado "inativo" (cinza)
+    document.querySelectorAll('.status-step').forEach(element => {
+        element.classList.remove('text-green-600', 'font-extrabold', 'text-red-600');
+        element.classList.add('text-gray-400', 'font-semibold');
+    });
+
+    // 4. Ativar os passos correspondentes ao status atual e anteriores
+    let foundCurrent = false;
+
+    // Converte o status para o nome do passo no HTML
+    const getStepId = (s) => {
+        if (s === 'Pendente') return 'step-pendente';
+        if (s === 'Em Preparo') return 'step-preparo';
+        if (s === 'Saiu para Entrega') return 'step-entrega';
+        if (s === 'Entregue') return 'step-entregue';
+        return 'step-pendente';
+    };
+    
+    // Define a ordem correta dos status para a trilha de progresso
+    const statusOrder = ['Pendente', 'Em Preparo', 'Saiu para Entrega', 'Entregue'];
+    
+    for (const s of statusOrder) {
+        const stepId = getStepId(s);
+        const stepElement = document.getElementById(stepId);
+        
+        if (!stepElement) continue;
+
+        if (status === 'Cancelado') {
+             // Se cancelado, apenas marca 'Pendente' como cancelado e sai.
+             if (stepId === 'step-pendente') {
+                stepElement.classList.remove('text-gray-400', 'font-semibold');
+                stepElement.classList.add('text-red-600', 'font-extrabold');
+             }
+             break;
+        }
+
+        // Se o status atual for encontrado, marca ele e os anteriores
+        if (s === status) {
+            foundCurrent = true;
+        }
+
+        if (foundCurrent) {
+            stepElement.classList.remove('text-gray-400', 'font-semibold');
+            stepElement.classList.add('text-green-600', 'font-extrabold');
+        } else if (stepId !== 'step-entregue') { 
+             // Marca os passos anteriores como concluídos (verde)
+             stepElement.classList.remove('text-gray-400', 'font-semibold');
+             stepElement.classList.add('text-green-600', 'font-extrabold');
+        }
+    }
+}
+
+
+/**
+ * ✅ Chamado após o sucesso do envio do pedido.
+ */
+function handleOrderSuccess(pedidoId, deliveryType) {
+    // 1. LIMPA O CARRINHO E FECHA O MODAL DE COMPRA
     cart = [];
-    updateCartModal();
-    if (cartModal) cartModal.style.display = "none";
+    updateCartModal(); // Chama updateCartModal em vez de updateCart
+    cartModal.classList.add('hidden'); 
 
-    // 4. Exibe a notificação de sucesso (AGORA COM TIMER E SEM BOTÃO)
-    Swal.fire({
-        title: "Pedido Recebido!",
-        text: `Seu pedido #${orderId} foi enviado para a cozinha. O status será exibido em instantes.`,
-        icon: "success",
-        showConfirmButton: false, // <-- IMPORTANTE: Remove o botão
-        timer: 3000, // <-- IMPORTANTE: Fecha automaticamente após 3 segundos
-        timerProgressBar: true,
-    // SEU CÓDIGO ATUAL
-// ...
-}).then(() => {
-    // ESTA FUNÇÃO É EXECUTADA APÓS O SWEETALERT FECHAR
-    if (statusModal) {
-        statusModal.classList.remove('hidden'); 
-        // 🚀 MUDANÇA: Usamos style.display para garantir que o modal abra.
-        statusModal.style.display = 'flex'; 
+    // 2. ATUALIZA E PERSISTE O ESTADO DO PEDIDO
+    currentOrderId = pedidoId;
+    currentOrderStatus = 'Pendente'; // Status inicial
+    currentDeliveryType = deliveryType; // Salva o tipo de entrega
+    localStorage.setItem('currentOrderId', pedidoId);
+    localStorage.setItem('currentOrderStatus', 'Pendente');
+    localStorage.setItem('currentDeliveryType', deliveryType); // NOVO: Persiste o tipo de entrega
+
+    // 3. HABILITA O BOTÃO DE RASTREAMENTO NO FOOTER
+    toggleStatusButton(deliveryType); 
+    
+    // 4. ABRE O MODAL DE STATUS INICIAL
+    updateOrderStatusUI('Pendente', deliveryType);
+    statusModal.classList.remove("hidden"); // **CORREÇÃO: Usa remove('hidden')**
+
+    // 5. Mensagem de sucesso
+    Toastify({ 
+        text: `✅ Pedido #${pedidoId} enviado! Você pode acompanhá-lo no rodapé.`, 
+        duration: 8000, 
+        style: { background: "linear-gradient(to right, #10b981, #34d399)" } 
+    }).showToast();
+}
+
+
+// =====================
+// LISTENERS DO MODAL DE STATUS
+// =====================
+
+// Novo: Event Listener para abrir o modal de status (clique no botão do footer)
+statusBtn.addEventListener("click", () => {
+    if (currentOrderId) {
+        statusModal.classList.remove("hidden"); // Abre
+        // Garante que o status visual esteja atualizado antes de abrir
+        updateOrderStatusUI(currentOrderStatus, currentDeliveryType);
     }
 });
-}
-// No seu script.js
 
-// Listener para o botão de rastreamento do pedido no footer
-if (statusBtn) {
-    statusBtn.addEventListener("click", () => {
-    if (currentOrderId) {
-        statusModal.classList.remove("hidden"); 
-        // 🚀 MUDANÇA: Usamos style.display para garantir que o modal abra.
-        statusModal.style.display = "flex"; 
-    } else {
-             Toastify({ text: "Nenhum pedido recente encontrado para rastrear.", duration: 3000, style: { background: "linear-gradient(to right, #f59e0b, #facc15)" } }).showToast();
-        }
-    });
-}
+// Novo: Event Listener para fechar o modal de status (clique no botão Voltar)
+closeStatusBtn.addEventListener("click", () => {
+    statusModal.classList.add("hidden"); // Fecha
+});
 
-// Listener para fechar o modal de status
-if (closeStatusBtn) {
-    closeStatusBtn.addEventListener("click", () => {
-        // Opção 1: Usar a classe hidden (o suficiente, pois ela define display: none)
-        statusModal.classList.add("hidden"); 
 
-        // Opção 2 (Garantia extra):
-        // statusModal.style.display = "none";
+// =====================
+// SOCKET.IO LISTENERS (ATUALIZAÇÃO EM TEMPO REAL)
+// =====================
+
+socket.on('status_atualizado', (data) => {
+    // FILTRO CRÍTICO: Verifica se o status atualizado é para o pedido que o CLIENTE ESTÁ RASTREANDO
+    if (data.id === currentOrderId) {
         
-        // Opcional: Remova o 'flex' apenas para limpeza de classes
-        statusModal.classList.remove("flex");
-    });
-}
+        currentOrderStatus = data.status; // ATUALIZA O ESTADO PERSISTIDO
+        localStorage.setItem('currentOrderStatus', data.status); 
+        
+        updateOrderStatusUI(data.status, currentDeliveryType); // Atualiza a visualização no modal
+
+        Toastify({ 
+            text: `📢 STATUS ATUALIZADO: Pedido #${data.id} agora está ${data.status.toUpperCase()}`, 
+            duration: 5000, 
+            style: { background: "linear-gradient(to right, #1d4ed8, #3b82f6)" } 
+        }).showToast();
+
+        // SE O PEDIDO FINALIZOU (ENTREGUE/CANCELADO), DESATIVA TUDO.
+        if (data.status === 'Entregue' || data.status === 'Cancelado') {
+            statusModal.classList.add("hidden"); // Fecha o modal
+            toggleStatusButton(); // Limpa o estado e esconde o botão
+            
+            Toastify({ 
+                text: `🎉 Pedido #${data.id} finalizado! Obrigado.`, 
+                duration: 10000, 
+                style: { background: "linear-gradient(to right, #22c55e, #84cc16)" } 
+            }).showToast();
+        }
+    }
+});
+
+
+// =====================
+// Inicialização
+// =====================
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Tenta carregar o estado do pedido persistido ao carregar a página
+    const initialStatus = localStorage.getItem('currentOrderStatus');
+    const initialDeliveryType = localStorage.getItem('currentDeliveryType');
+    const initialOrderId = localStorage.getItem('currentOrderId');
+
+    if (initialStatus && initialOrderId && initialDeliveryType) {
+        currentOrderId = parseInt(initialOrderId);
+        currentOrderStatus = initialStatus;
+        currentDeliveryType = initialDeliveryType;
+        
+        // Re-habilita o botão se houver um pedido pendente
+        toggleStatusButton(initialDeliveryType); 
+    }
+    
+    updateHeaderStatus();
+    handlePaymentUIChange(); // Garante que a UI de pagamento inicie corretamente
+});
 /**
  * @CORREÇÃO 2: Lógica completa para atualizar o rastreio na tela.
  */

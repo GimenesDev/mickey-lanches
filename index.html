@@ -332,7 +332,7 @@
 
  
 
-<div id="status-modal" class="fixed inset-0 bg-black bg-opacity-75 z-50 justify-center items-center hidden">
+<div id="status-modal" class="hidden fixed inset-0 bg-black/60 items-center justify-center z-50">
     <div class="bg-white p-8 rounded-lg shadow-2xl w-full max-w-md m-4">
         <div class="flex justify-between items-center mb-6 border-b pb-4">
             <h2 class="text-2xl font-bold text-gray-800">Status do Pedido <span id="current-order-id">#000</span></h2>
@@ -363,15 +363,15 @@
 </div>
 
 <footer class="w-full bg-red-500 py-3 fixed bottom-0 z-40 flex items-center justify-center gap-8">
-    
+
     <button class="flex items-center gap-2 text-white font-bold" id="cart-btn">
         (<span id="cart-count">0</span>) Carrinho <i class="fa fa-cart-plus text-lg text-white"></i>
     </button>
 
-<button id="status-btn" class="hidden w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl transition duration-300 items-center justify-center shadow-lg mt-2">
-    <i class="fa fa-search mr-2"></i>
-    Acompanhar Pedido <span id="status-footer-id" class="ml-1 font-extrabold">#000</span>
-</button>
+    <button id="status-btn" class="hidden bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl transition duration-300 items-center justify-center shadow-lg">
+        <i class="fa fa-search mr-2"></i>
+        Acompanhar Pedido <span id="status-footer-id" class="ml-1 font-extrabold"></span>
+    </button>
 </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
